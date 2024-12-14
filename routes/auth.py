@@ -35,6 +35,10 @@ signup.add_argument("jawatan", type=str, required=True)
 signup.add_argument("password", type=str, required=True)
 signup.add_argument("ppdk_id", type=str, required=True)
 
+password = reqparse.RequestParser()
+password.add_argument("email", type=str, required=True)
+password.add_argument("new_pass", type=str, required=True)
+
 
 class Login(Resource):
     def post(self):
@@ -79,6 +83,19 @@ class Signup(Resource):
         return new_admin, 201
 
 
+class Password(Resource):
+    def put(self):
+        args = password.parse_args()
+        admin = Admin.query.filter_by(email=args["email"]).first_or_404(
+            "Admin not found"
+        )
+        admin.password = f_bcrypt.generate_password_hash(args["new_pass"])
+
+        db.session.commit()
+
+        return {"message": "Berjaya kemaskini katalaluan"}, 200
+
+
 class RefreshToken(Resource):
     @jwt_required(refresh=True)
     def post(self):
@@ -91,3 +108,4 @@ class RefreshToken(Resource):
 api.add_resource(Login, "/login")
 api.add_resource(Signup, "/signup")
 api.add_resource(RefreshToken, "/refresh")
+api.add_resource(Password, "/password")
