@@ -70,6 +70,20 @@ pelatihFields = {
             }
         )
     ),
+    "assessment": fields.List(
+        fields.Nested(
+            {
+                "id": fields.String,
+                "kategori_oku": fields.Nested(
+                    {
+                        "id": fields.String,
+                        "kategori": fields.String,
+                    }
+                ),
+                "created_at": fields.String,
+            }
+        )
+    ),
 }
 
 
@@ -125,6 +139,9 @@ class PelatihInfo(Resource):
         pelatih.jantina_id = args["jantina_id"]
         pelatih.alamat = args["alamat"]
         pelatih.negeri = args["negeri"]
+        pelatih.penjaga[0].nama = args["nama_penjaga"]
+        pelatih.penjaga[0].hubungan = args["hubungan"]
+        pelatih.penjaga[0].alamat = args["alamat_penjaga"]
 
         db.session.commit()
 

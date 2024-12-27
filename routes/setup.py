@@ -53,14 +53,27 @@ class SetupSoalan(Resource):
 
     def post(self, id):
         args = json.loads(request.data)
-        soalan = list(
-            map(lambda s: Soalan(soalan=s["soalan"], kategori_id=id), args["soalan"])
-        )
 
-        db.session.add_all(soalan)
+        for s in args["soalan"]:
+            soalan = Soalan.query.filter_by(id=s["id"], kategori_id=id).first()
+            if soalan:
+                soalan.soalan = s["soalan"]
+            else:
+                new_soalan = Soalan(soalan=s["soalan"], kategori_id=id)
+                db.session.add(new_soalan)
+
         db.session.commit()
 
-        return {"message": "Berjaya didaftarkan"}, 201
+        return {"message": "Berjaya dikemaskini"}, 200
+
+    def delete(self, id):
+        soalan = Soalan.query.filter_by(id=id).first()
+        if soalan:
+            db.session.delete(soalan)
+            db.session.commit()
+            return {"message": "Berjaya dipadam"}, 200
+        else:
+            return {"message": "Soalan tidak wujud"}, 404
 
 
 api.add_resource(SetupOKU, "/oku")

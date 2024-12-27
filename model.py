@@ -68,7 +68,7 @@ class KategoriOKU(db.Model):
     created_at = db.Column(db.DateTime, server_default=func.now())
 
     soalan_list = db.relationship("Soalan", backref="kategori_oku")
-    assess_res = db.relationship("AssessmentResult", backref="kategori_oku")
+    assessments = db.relationship("Assessment", backref="kategori_oku")
 
 
 class Penjaga(db.Model):
@@ -100,7 +100,7 @@ class Assessment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     pelatih_id = db.Column(db.Integer, db.ForeignKey("pelatih.id"), nullable=False)
     jawapan = db.Column(db.JSON)
-    cycle = db.Column(db.Integer)
+    kategori_id = db.Column(db.Integer, db.ForeignKey("oku_lookup.id"), nullable=False)
     created_at = db.Column(db.DateTime, server_default=func.now())
 
     result = db.relationship("AssessmentResult", backref="assessment", uselist=False)
