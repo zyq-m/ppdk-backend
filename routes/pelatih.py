@@ -89,8 +89,11 @@ pelatihFields = {
 
 class ListPelatih(Resource):
     @marshal_with(pelatihFields)
+    @jwt_required()
     def get(self):
-        pelatih = Pelatih.query.all()
+        payload = ast.literal_eval(get_jwt_identity())
+        admin_ppdk = Admin.query.filter_by(email=payload["email"]).first_or_404()
+        pelatih = Pelatih.query.filter_by(admin_ppdk=admin_ppdk).all()
         return pelatih, 200
 
     # @marshal_with(pelatihFields)
