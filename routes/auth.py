@@ -32,7 +32,6 @@ signup.add_argument("email", type=str, required=True)
 signup.add_argument("nama", type=str, required=True)
 signup.add_argument("no_tel", type=str, required=True)
 signup.add_argument("jawatan", type=str, required=True)
-signup.add_argument("password", type=str, required=True)
 signup.add_argument("ppdk_id", type=str, required=True)
 
 password = reqparse.RequestParser()
@@ -73,7 +72,7 @@ class Signup(Resource):
             nama=args["nama"],
             jawatan=args["jawatan"],
             ppdk_id=ppdk.id,
-            password=f_bcrypt.generate_password_hash(args["password"]),
+            password=f_bcrypt.generate_password_hash("ppdk2024"),
         )
         phone = Phone(no_tel=args["no_tel"], admin=new_admin)
 
