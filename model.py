@@ -100,6 +100,7 @@ class Assessment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     pelatih_id = db.Column(db.Integer, db.ForeignKey("pelatih.id"), nullable=False)
     jawapan = db.Column(db.JSON)
+    skor = db.Column(db.Double)
     kategori_id = db.Column(db.Integer, db.ForeignKey("oku_lookup.id"), nullable=False)
     created_at = db.Column(db.DateTime, server_default=func.now())
 

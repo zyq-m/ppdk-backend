@@ -2,6 +2,8 @@ import ast
 from flask import Blueprint
 from flask_restful import Api, Resource, reqparse, fields, marshal_with, abort
 from flask_jwt_extended import get_jwt_identity, jwt_required
+from utils.score import ScoreCalculator
+from utils.umur import UmurCalculator
 
 from model import db, Admin, Phone, Pelatih, Penjaga
 
@@ -25,6 +27,7 @@ pelatihFields = {
     "nama": fields.String,
     "no_kp": fields.String,
     "kaum": fields.String,
+    "umur": fields.Integer,
     "jantina": fields.Nested(
         {
             "id": fields.String,
@@ -80,6 +83,8 @@ pelatihFields = {
                         "kategori": fields.String,
                     }
                 ),
+                "skor": fields.Integer,
+                "indicator": fields.String,
                 "created_at": fields.String,
             }
         )
@@ -94,6 +99,11 @@ class ListPelatih(Resource):
         payload = ast.literal_eval(get_jwt_identity())
         admin_ppdk = Admin.query.filter_by(email=payload["email"]).first_or_404()
         pelatih = Pelatih.query.filter_by(admin_ppdk=admin_ppdk).all()
+
+        for p in pelatih:
+            umur = UmurCalculator(p.no_kp)
+            p.umur = umur.get_age()
+
         return pelatih, 200
 
     # @marshal_with(pelatihFields)
@@ -131,6 +141,14 @@ class PelatihInfo(Resource):
     @marshal_with(pelatihFields)
     def get(self, id):
         pelatih = Pelatih.query.filter_by(id=id).first_or_404()
+
+        for p in pelatih.assessment:
+            jawapan = ast.literal_eval(p.jawapan)
+            score = ScoreCalculator(jawapan)
+            p.indicator = score.classify_score()
+
+        umur = UmurCalculator(pelatih.no_kp)
+        pelatih.umur = umur.get_age()
         return pelatih, 200
 
     def put(self, id):
