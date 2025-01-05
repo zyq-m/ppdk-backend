@@ -1,8 +1,7 @@
 from datetime import timedelta
-from flask import Flask, jsonify, request
+from flask import Flask
 from routes import auth, ppdk, admin_ppdk, pelatih, setup, assessment
 from extensions import db, f_bcrypt, cors, jwt
-import requests
 
 app = Flask(__name__)
 
@@ -16,13 +15,6 @@ db.init_app(app)
 jwt.init_app(app)
 f_bcrypt.init_app(app)
 cors.init_app(app)
-
-
-@app.get("/hello")
-def hello():
-    res = requests.get("https://cat-fact.herokuapp.com/facts")
-    return res.json()
-
 
 app.register_blueprint(auth.bp)
 app.register_blueprint(ppdk.bp)
