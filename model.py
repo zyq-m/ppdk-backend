@@ -18,10 +18,12 @@ class PPDK(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     nama = db.Column(db.String(80), nullable=False)
+    negeri = db.Column(db.String(100), nullable=False)
     alamat = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, server_default=func.now())
 
     admins = db.relationship("Admin", backref="ppdk")
+    no_tel = db.relationship("Phone", backref="ppdk_lookup")
 
 
 class Admin(db.Model):
@@ -126,6 +128,7 @@ class Phone(db.Model):
     no_tel = db.Column(db.String(13), unique=True, nullable=False)
     admin_id = db.Column(db.Integer, db.ForeignKey("admin_ppdk.id"), nullable=True)
     penjaga_id = db.Column(db.Integer, db.ForeignKey("penjaga.id"), nullable=True)
+    ppdk_id = db.Column(db.Integer, db.ForeignKey("ppdk_lookup.id"), nullable=True)
     created_at = db.Column(db.DateTime, server_default=func.now())
 
 

@@ -100,6 +100,9 @@ class ListPelatih(Resource):
         admin_ppdk = Admin.query.filter_by(email=payload["email"]).first_or_404()
         pelatih = Pelatih.query.filter_by(admin_ppdk=admin_ppdk).all()
 
+        if payload["roleId"] == 1:
+            pelatih = Pelatih.query.all()
+
         for p in pelatih:
             umur = UmurCalculator(p.no_kp)
             p.umur = umur.get_age()
@@ -169,5 +172,5 @@ class PelatihInfo(Resource):
         return {"message": "Berjaya kemas kini"}, 200
 
 
-api.add_resource(ListPelatih, "/")
+api.add_resource(ListPelatih, "")
 api.add_resource(PelatihInfo, "/<int:id>")

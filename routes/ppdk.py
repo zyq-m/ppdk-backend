@@ -13,6 +13,7 @@ ppdkParser.add_argument("alamat", type=str, required=True)
 ppdkFields = {
     "id": fields.String,
     "nama": fields.String,
+    "negeri": fields.String,
     "alamat": fields.String,
     "admins": fields.List(
         fields.Nested(
@@ -24,6 +25,7 @@ ppdkFields = {
             }
         )
     ),
+    "no_tel": fields.Nested({"no_tel": fields.String}),
 }
 
 
@@ -44,4 +46,4 @@ class PPDKList(Resource):
         return ppdk, 201
 
 
-api.add_resource(PPDKList, "/")
+api.add_resource(PPDKList, "")
