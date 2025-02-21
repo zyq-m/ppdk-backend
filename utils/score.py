@@ -8,7 +8,8 @@ class ScoreCalculator:
     def calc_score(self):
         score = 0
         for key, value in self.data.items():
-            score += SCORING.get(value, 0)
+            print()
+            score += int(value)
         return score
 
     def range_score(self):

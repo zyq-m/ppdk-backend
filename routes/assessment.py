@@ -97,7 +97,7 @@ class Assess(Resource):
         # for p in assessment:
         jawapan = ast.literal_eval(assessment.jawapan)
         score = ScoreCalculator(jawapan)
-        umur = UmurCalculator(assessment.pelatih.no_kp)
+        umur = UmurCalculator(assessment.pelatih.dob)
 
         assessment.pelatih.umur = umur.get_age()
         assessment.indicator = score.classify_score()
@@ -145,7 +145,7 @@ class ListPelatih(Resource):
         for p in pelatih:
             jawapan = ast.literal_eval(p.jawapan)
             score = ScoreCalculator(jawapan)
-            umur = UmurCalculator(p.pelatih.no_kp)
+            umur = UmurCalculator(p.pelatih.dob)
 
             p.pelatih.umur = umur.get_age()
             p.indicator = score.classify_score()
@@ -153,5 +153,5 @@ class ListPelatih(Resource):
         return pelatih, 200
 
 
-api.add_resource(ListPelatih, "/")
+api.add_resource(ListPelatih, "")
 api.add_resource(Assess, "/<int:id>")

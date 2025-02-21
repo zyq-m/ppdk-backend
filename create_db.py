@@ -1,5 +1,5 @@
 from app import app, db
-from model import Admin, Jantina, Role, PPDK, Phone
+from model import Admin, Role, PPDK, Phone
 from extensions import f_bcrypt
 
 
@@ -7,13 +7,10 @@ def seed_db():
     db.create_all()
 
     superAdmin = Role(name="super-admin")
-    admin = Role(name="admin")
-    pelatih = Role(name="pelatih")
+    adminRole = Role(name="admin")
+    pelatihRole = Role(name="pelatih")
 
-    lelaki = Jantina(jantina="Lelaki")
-    perempuan = Jantina(jantina="Perempuan")
-
-    ppdk = PPDK(nama="Super PPDK", alamat="Super PPDK")
+    ppdk = PPDK(nama="Super PPDK", alamat="Super PPDK", negeri="Terengganu")
     superAcc = Admin(
         email="admin@ppdk.com",
         nama="Super",
@@ -22,10 +19,27 @@ def seed_db():
         password=f_bcrypt.generate_password_hash("ppdk2024"),
         role=superAdmin,
     )
+    admin = Admin(
+        email="ahmad@ppdk.com",
+        nama="Ahmad",
+        jawatan="Penyelia",
+        ppdk=ppdk,
+        password=f_bcrypt.generate_password_hash("ppdk2024"),
+    )
     superPhone = Phone(no_tel="01119650612", admin=superAcc)
+    adminPhone = Phone(no_tel="01119650613", admin=admin)
 
     db.session.add_all(
-        [superAdmin, admin, pelatih, lelaki, perempuan, ppdk, superAcc, superPhone]
+        [
+            superAdmin,
+            adminRole,
+            pelatihRole,
+            ppdk,
+            superAcc,
+            admin,
+            superPhone,
+            adminPhone,
+        ]
     )
     db.session.commit()
 

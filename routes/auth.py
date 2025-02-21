@@ -55,8 +55,8 @@ class Login(Resource):
             "ppdkId": admin.ppdk_id,
         }
         token = {
-            "accessToken": create_access_token(str(admin_payload)),
-            "refreshToken": create_refresh_token(str(admin_payload)),
+            "accessToken": create_access_token(identity=admin_payload),
+            "refreshToken": create_refresh_token(identity=admin_payload),
         }
 
         return token, 200

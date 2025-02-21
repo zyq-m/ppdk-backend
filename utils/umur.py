@@ -2,9 +2,10 @@ from datetime import datetime
 
 
 class UmurCalculator:
-    def __init__(self, no_ic):
+    def __init__(self, dob):
         # year of birth
-        self.yob = 2000 + int(no_ic[:2])
+        # self.yob = datetime.strptime(dob, "%Y-%m-%d").year
+        self.yob = dob.year
 
     def get_age(self):
         current_year = datetime.now().year
