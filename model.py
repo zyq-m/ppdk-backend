@@ -117,6 +117,7 @@ class KategoriOKU(db.Model):
     kategori = db.Column(db.String(255), nullable=False)
     min_umur = db.Column(db.Integer, nullable=True)
     max_umur = db.Column(db.Integer, nullable=True)
+    skor = db.Column(db.JSON, nullable=False)
     created_at = db.Column(db.DateTime, server_default=func.now())
 
     kriteria_list = db.relationship("SoalanConfig", backref="kategori_oku")
@@ -177,7 +178,7 @@ class Assessment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     pelatih_id = db.Column(db.Integer, db.ForeignKey("pelatih.id"), nullable=False)
     jawapan = db.Column(db.JSON)
-    skor = db.Column(db.Double)
+    skor = db.Column(db.JSON)
     kategori_id = db.Column(db.Integer, db.ForeignKey("oku_lookup.id"), nullable=False)
     created_at = db.Column(db.DateTime, server_default=func.now())
 

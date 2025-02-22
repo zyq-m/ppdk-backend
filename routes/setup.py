@@ -1,7 +1,6 @@
 from flask import Blueprint, request
 from flask_restful import Api, Resource, reqparse, fields, marshal_with
 from flask_jwt_extended import get_jwt_identity, jwt_required
-import json
 
 from model import db, Soalan, KategoriOKU, SoalanConfig
 
@@ -17,11 +16,14 @@ okuFields = {
     "kategori": fields.String,
     "minUmur": fields.Integer(attribute="min_umur"),
     "maxUmur": fields.Integer(attribute="max_umur"),
+    "skor": fields.List(fields.List(fields.Integer)),
     "kriteria": fields.Nested(
         {
             "id": fields.String,
             "kriteria": fields.String,
-            "purata_skor": fields.String,
+            "purataSkor": fields.List(
+                fields.List(fields.Integer), attribute="purata_skor"
+            ),
         },
         attribute="kriteria_list",
     ),
@@ -38,28 +40,45 @@ soalanFields = {
 
 
 class SetupOKU(Resource):
+    @jwt_required()
     @marshal_with(okuFields)
     def get(self):
         oku = KategoriOKU.query.all()
         return oku
 
+    @jwt_required()
     def post(self):
-        args = json.loads(request.data)
-        oku = list(
-            map(
-                lambda oku: KategoriOKU(
-                    kategori=oku.get("kategori"),
-                    min_umur=oku.get("minUmur"),
-                    max_umur=oku.get("max_umur"),
-                ),
-                args.get("kategori"),
+        args = request.json
+        kriteria_list = [
+            SoalanConfig(
+                kriteria=kr.get("kriteria"),
+                purata_skor=[
+                    [int(min), int(max)]
+                    for min, max in (
+                        num.split("-") for num in kr.get("purataSkor").split(",")
+                    )
+                ],
             )
+            for kr in args.get("kriteria")
+        ]
+
+        oku = KategoriOKU(
+            kategori=args.get("kategori"),
+            min_umur=args.get("minUmur"),
+            max_umur=args.get("maxUmur"),
+            skor=[
+                [int(min), int(max)]
+                for min, max in (
+                    num.split("-") for num in args.get("skorKeseluruhan").split(",")
+                )
+            ],
+            kriteria_list=kriteria_list,
         )
 
-        db.session.add_all(oku)
+        db.session.add(oku)
         db.session.commit()
 
-        return {"message": "Berjaya didaftarkan"}, 201
+        return {"message": "Kategori berjaya didaftarkan"}, 201
 
 
 extendedSoalan = {
@@ -68,7 +87,7 @@ extendedSoalan = {
         {
             "id": fields.String,
             "kriteria": fields.String,
-            "soalan": fields.Nested(soalanFields, attribute="soalan"),
+            "soalan": fields.Nested(soalanFields, attribute="soalan", default=None),
         },
         attribute="kriteria_list",
     ),
@@ -76,11 +95,13 @@ extendedSoalan = {
 
 
 class SetupSoalan(Resource):
+    @jwt_required()
     @marshal_with(extendedSoalan)
     def get(self, id):
         kategori = KategoriOKU.query.filter_by(id=id).first_or_404()
         return kategori
 
+    @jwt_required()
     def post(self, id):
         args = request.json
         kategori = KategoriOKU.query.filter_by(id=id).first_or_404()
@@ -110,6 +131,7 @@ class SetupSoalan(Resource):
 
         return {"message": "Berjaya disimpan"}, 200
 
+    @jwt_required()
     def delete(self, id):
         soalan = Soalan.query.filter_by(id=id).first()
         if soalan:

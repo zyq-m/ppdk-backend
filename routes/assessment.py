@@ -5,6 +5,8 @@ from flask_jwt_extended import jwt_required
 from utils.score import ScoreCalculator
 from utils.umur import UmurCalculator
 
+from routes.setup import extendedSoalan
+
 from model import db, Assessment
 
 bp = Blueprint("assessment", __name__, url_prefix="/assessment")
@@ -19,80 +21,18 @@ assessmentFields = {
     "jawapan": fields.String,
     "skor": fields.Integer,
     "indicator": fields.String,
-    "lagend": fields.Nested(
-        {
-            "low": fields.Nested(
-                {
-                    "min": fields.Integer,
-                    "max": fields.Integer,
-                }
-            ),
-            "mid": fields.Nested(
-                {
-                    "min": fields.Integer,
-                    "max": fields.Integer,
-                }
-            ),
-            "high": fields.Nested(
-                {
-                    "min": fields.Integer,
-                    "max": fields.Integer,
-                }
-            ),
-        }
-    ),
-    "kategori_oku": fields.Nested(
-        {
-            "id": fields.String,
-            "kategori": fields.String,
-        }
-    ),
+    "kategori_oku": fields.Nested(extendedSoalan),
     "created_at": fields.String,
-    "pelatih": fields.Nested(
-        {
-            "id": fields.String,
-            "nama": fields.String,
-            "no_kp": fields.String,
-            "kaum": fields.String,
-            "umur": fields.Integer,
-            "jantina": fields.Nested(
-                {
-                    "id": fields.String,
-                    "jantina": fields.String,
-                }
-            ),
-            "alamat": fields.String,
-            "negeri": fields.String,
-            "role": fields.Nested(
-                {
-                    "id": fields.String,
-                    "name": fields.String,
-                }
-            ),
-            "admin_ppdk": fields.Nested(
-                {
-                    "id": fields.String,
-                    "nama": fields.String,
-                    "email": fields.String,
-                    "ppdk": fields.Nested(
-                        {
-                            "id": fields.String,
-                            "nama": fields.String,
-                        }
-                    ),
-                }
-            ),
-        }
-    ),
 }
 
 
 class Assess(Resource):
+    @jwt_required()
     @marshal_with(assessmentFields)
     def get(self, id):
         assessment = Assessment.query.filter_by(
             kategori_id=id, pelatih_id=request.args.get("pelatih_id")
-        ).first()
+        ).first_or_404("Pelatih tidak ditemui")
 
         # for p in assessment:
         jawapan = ast.literal_eval(assessment.jawapan)
@@ -105,6 +45,7 @@ class Assess(Resource):
 
         return assessment, 200
 
+    @jwt_required()
     def post(self, id):
         args = assessmentParser.parse_args()
         assessment = Assessment.query.filter_by(
@@ -130,14 +71,17 @@ class Assess(Resource):
 
         return {"message": "Berjaya disimpan"}, 201
 
+    @jwt_required()
     def put(self):
         pass
 
+    @jwt_required()
     def delete(self):
         pass
 
 
 class ListPelatih(Resource):
+    @jwt_required()
     @marshal_with(assessmentFields)
     def get(self):
         pelatih = Assessment.query.all()
