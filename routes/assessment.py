@@ -1,4 +1,5 @@
 import ast
+from collections import defaultdict
 from flask import Blueprint, json, request
 from flask_restful import Api, Resource, fields, reqparse, abort, marshal_with
 from flask_jwt_extended import jwt_required
@@ -7,7 +8,7 @@ from utils.umur import UmurCalculator
 
 from routes.setup import extendedSoalan
 
-from model import db, Assessment
+from model import db, Assessment, SoalanConfig, Soalan
 
 bp = Blueprint("assessment", __name__, url_prefix="/assessment")
 api = Api(bp)
@@ -20,6 +21,7 @@ assessmentFields = {
     "id": fields.String,
     "jawapan": fields.String,
     "skor": fields.Integer,
+    "skorKriteria": fields.String(attribute="skor_kriteria"),
     "indicator": fields.String,
     "kategori_oku": fields.Nested(extendedSoalan),
     "created_at": fields.String,
@@ -34,7 +36,6 @@ class Assess(Resource):
             kategori_id=id, pelatih_id=request.args.get("pelatih_id")
         ).first_or_404("Pelatih tidak ditemui")
 
-        # for p in assessment:
         jawapan = ast.literal_eval(assessment.jawapan)
         score = ScoreCalculator(jawapan)
         umur = UmurCalculator(assessment.pelatih.dob)
@@ -53,17 +54,25 @@ class Assess(Resource):
         ).first()
 
         jawapan = json.loads(args["jawapan"])
-        score = ScoreCalculator(jawapan)
+        skorKeseluruhan = ScoreCalculator(jawapan)
+
+        result = defaultdict(int)
+        for key, val in jawapan.items():
+            soalan = Soalan.query.filter_by(id=key).first_or_404("Tidak dijumpai")
+            result[soalan.kriteria_id] += int(val)
+        result = json.dumps(result)
 
         if assessment:
             assessment.jawapan = args["jawapan"]
-            assessment.skor = score.calc_score()
+            assessment.skor = skorKeseluruhan.calc_score()
+            assessment.skor_kriteria = result
         else:
             new_assessment = Assessment(
                 pelatih_id=args["pelatih_id"],
                 jawapan=args["jawapan"],
                 kategori_id=id,
-                skor=score.calc_score(),
+                skor=skorKeseluruhan.calc_score(),
+                skor_kriteria=result,
             )
             db.session.add(new_assessment)
 

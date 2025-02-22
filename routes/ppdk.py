@@ -1,13 +1,15 @@
 from flask import Blueprint
 from flask_restful import Api, Resource, reqparse, fields, marshal_with, abort
 
-from model import db, PPDK
+from model import db, PPDK, Phone
 
 bp = Blueprint("ppdk", __name__, url_prefix="/ppdk")
 api = Api(bp)
 
 ppdkParser = reqparse.RequestParser()
 ppdkParser.add_argument("nama", type=str, required=True)
+ppdkParser.add_argument("notel", type=str, required=True)
+ppdkParser.add_argument("negeri", type=str, required=True)
 ppdkParser.add_argument("alamat", type=str, required=True)
 
 ppdkFields = {
@@ -35,15 +37,16 @@ class PPDKList(Resource):
         ppdk = PPDK.query.all()
         return ppdk, 200
 
-    @marshal_with(ppdkFields)
     def post(self):
         args = ppdkParser.parse_args()
-        ppdk = PPDK(nama=args["nama"], alamat=args["alamat"])
+        ppdk = PPDK(nama=args["nama"], alamat=args["alamat"], negeri=args["negeri"])
+        notel = Phone(ppdk_lookup=ppdk, no_tel=args["notel"])
 
         db.session.add(ppdk)
+        db.session.add(notel)
         db.session.commit()
 
-        return ppdk, 201
+        return {"message": "Cawangan PPDK baharu berjaya didaftarkan"}, 201
 
 
 api.add_resource(PPDKList, "")

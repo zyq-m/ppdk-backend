@@ -12,6 +12,7 @@ import json
 
 from model import db, Admin, Phone, Pelatih, Penjaga, TahapKeupayaan, MaklumatTambahan
 from CONSTANT import ALLOWED_EXTENSIONS
+from routes.assessment import assessmentFields
 
 bp = Blueprint("pelatih", __name__, url_prefix="/pelatih")
 api = Api(bp)
@@ -106,7 +107,7 @@ def allowed_file(filename):
 
 
 class ListPelatih(Resource):
-    @marshal_with({**pelatihFields, "isAssess": fields.Boolean})
+    @marshal_with({**pelatihFields, "assessment": fields.Nested(assessmentFields)})
     @jwt_required()
     def get(self):
         payload = get_jwt_identity()
@@ -120,7 +121,7 @@ class ListPelatih(Resource):
             umur = UmurCalculator(p.dob)
             p.umur = umur.get_age()
             p.jantina = "Lelaki" if p.jantina == "1" else "Perempuan"
-            p.isAssess = True if p.assessment else False
+            print(p.assessment)
 
         return pelatih, 200
 

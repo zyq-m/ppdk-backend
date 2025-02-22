@@ -1,5 +1,6 @@
 from flask import Blueprint
 from flask_restful import Api, Resource, reqparse, fields, marshal_with, abort
+from flask_jwt_extended import jwt_required
 
 from model import db, Admin, PPDK, Phone
 from extensions import f_bcrypt
@@ -10,10 +11,9 @@ api = Api(bp)
 adminParser = reqparse.RequestParser()
 adminParser.add_argument("email", type=str, required=True)
 adminParser.add_argument("nama", type=str, required=True)
-adminParser.add_argument("no_tel", type=str, required=True)
+adminParser.add_argument("notel", type=str, required=True)
 adminParser.add_argument("jawatan", type=str, required=True)
-adminParser.add_argument("password", type=str, required=True)
-adminParser.add_argument("ppdk_id", type=str, required=True)
+adminParser.add_argument("ppdk", type=str, required=True)
 
 adminFields = {
     "id": fields.String,
@@ -75,36 +75,39 @@ adminFields = {
 
 
 class ListAdminPPDK(Resource):
+    @jwt_required()
     @marshal_with(adminFields)
     def get(self):
         ppdk = Admin.query.all()
         return ppdk, 200
 
-    @marshal_with(adminFields)
+    @jwt_required()
     def post(self):
         args = adminParser.parse_args()
-        ppdk = PPDK.query.filter_by(id=args["ppdk_id"]).first_or_404("PPDK not found")
+        ppdk = PPDK.query.filter_by(id=args["ppdk"]).first_or_404("PPDK not found")
         new_admin = Admin(
             email=args["email"],
             nama=args["nama"],
             jawatan=args["jawatan"],
-            ppdk_id=ppdk.id,
-            password=f_bcrypt.generate_password_hash(args["no_tel"]),
+            password=f_bcrypt.generate_password_hash("ppdk2024"),
+            ppdk=ppdk,
         )
-        phone = Phone(no_tel=args["no_tel"], admin=new_admin)
+        phone = Phone(no_tel=args["notel"], admin=new_admin)
 
         db.session.add_all([new_admin, phone])
         db.session.commit()
 
-        return new_admin, 201
+        return {"message": "Admin berjaya didaftarkan"}, 201
 
 
 class AdminPPDK(Resource):
+    @jwt_required()
     @marshal_with(adminFields)
     def get(self, id):
         ppdk = Admin.query.filter_by(id=id, role_id=2).first_or_404()
         return ppdk, 200
 
+    @jwt_required()
     def put(self, id):
         args = adminParser.parse_args()
         ppdk = Admin.query.filter_by(id=id).first_or_404()
@@ -118,5 +121,5 @@ class AdminPPDK(Resource):
         return {"message": "Berjaya kemas kini"}, 200
 
 
-api.add_resource(ListAdminPPDK, "/")
+api.add_resource(ListAdminPPDK, "")
 api.add_resource(AdminPPDK, "/<int:id>")
