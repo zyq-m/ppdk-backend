@@ -161,12 +161,8 @@ class Soalan(db.Model):
     __tablename__ = "soalan"
 
     id = db.Column(db.Integer, primary_key=True)
-    kategori_id = db.Column(
-        db.Integer, db.ForeignKey("oku_lookup.id"), nullable=False, unique=True
-    )
-    kriteria_id = db.Column(
-        db.Integer, db.ForeignKey("soalan_conf.id"), nullable=False, unique=True
-    )
+    kategori_id = db.Column(db.Integer, db.ForeignKey("oku_lookup.id"), nullable=False)
+    kriteria_id = db.Column(db.Integer, db.ForeignKey("soalan_conf.id"), nullable=False)
     soalan = db.Column(db.Text, nullable=False)
     skor = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, server_default=func.now())
@@ -178,7 +174,8 @@ class Assessment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     pelatih_id = db.Column(db.Integer, db.ForeignKey("pelatih.id"), nullable=False)
     jawapan = db.Column(db.JSON)
-    skor = db.Column(db.JSON)
+    skor = db.Column(db.JSON, nullable=False)
+    skor_kriteria = db.Column(db.JSON, nullable=False)
     kategori_id = db.Column(db.Integer, db.ForeignKey("oku_lookup.id"), nullable=False)
     created_at = db.Column(db.DateTime, server_default=func.now())
 
