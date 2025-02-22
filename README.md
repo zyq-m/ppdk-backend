@@ -31,3 +31,17 @@ pip install -r requirements.txt
 ```bash
 python3 app.py
 ```
+
+2. Deploy
+
+Execute this command one-by-one
+
+```bash
+cd var/www/ppdk-backend
+git pull
+source .venv/bin/activate
+pip install -r requirement.txt
+deactivate
+sudo systemctl restart ppdk-backend
+sudo systemctl restart nginx
+```
