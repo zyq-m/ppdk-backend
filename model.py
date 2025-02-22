@@ -84,7 +84,7 @@ class TahapKeupayaan(db.Model):
     is_bantuan = db.Column(db.String(1), nullable=False)
     alat_bantuan = db.Column(db.String(50), nullable=True)
     penyakit = db.Column(db.String(50), nullable=True)
-    sikap = db.Column(db.String(1), nullable=False)
+    sikap = db.Column(db.String(20), nullable=False)
     lain_sikap = db.Column(db.String(50), nullable=True)
     urus_diri = db.Column(db.JSON, nullable=False)
     bergerak = db.Column(db.JSON, nullable=False)
