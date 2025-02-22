@@ -8,7 +8,6 @@ class ScoreCalculator:
     def calc_score(self):
         score = 0
         for key, value in self.data.items():
-            print()
             score += int(value)
         return score
 
