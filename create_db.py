@@ -1,5 +1,10 @@
 from app import app, db
-from model import Admin, Role, PPDK, Phone
+from model import (
+    Admin,
+    Role,
+    PPDK,
+    Phone,
+)
 from extensions import f_bcrypt
 
 
