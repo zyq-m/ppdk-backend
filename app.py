@@ -1,6 +1,6 @@
 from datetime import timedelta
 from flask import Flask, send_from_directory
-from routes import auth, ppdk, admin_ppdk, pelatih, setup, assessment
+from routes import auth, ppdk, admin_ppdk, pelatih, setup, assessment, analytic
 from extensions import db, f_bcrypt, cors, jwt
 from CONSTANT import UPLOAD_FOLDER
 
@@ -25,6 +25,7 @@ app.register_blueprint(admin_ppdk.bp)
 app.register_blueprint(pelatih.bp)
 app.register_blueprint(setup.bp)
 app.register_blueprint(assessment.bp)
+app.register_blueprint(analytic.bp)
 
 
 @app.route("/images/<string:name>")

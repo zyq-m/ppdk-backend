@@ -1,14 +1,14 @@
 import ast
 from collections import defaultdict
 from flask import Blueprint, json, request
-from flask_restful import Api, Resource, fields, reqparse, abort, marshal_with
+from flask_restful import Api, Resource, fields, reqparse, marshal_with
 from flask_jwt_extended import jwt_required
 from utils.score import ScoreCalculator
 from utils.umur import UmurCalculator
 
 from routes.setup import extendedSoalan
 
-from model import db, Assessment, SoalanConfig, Soalan
+from model import db, Assessment, Soalan
 
 bp = Blueprint("assessment", __name__, url_prefix="/assessment")
 api = Api(bp)
