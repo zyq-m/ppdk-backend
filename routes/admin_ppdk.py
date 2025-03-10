@@ -14,6 +14,7 @@ adminParser.add_argument("nama", type=str, required=True)
 adminParser.add_argument("notel", type=str, required=True)
 adminParser.add_argument("jawatan", type=str, required=True)
 adminParser.add_argument("ppdk", type=str, required=True)
+adminParser.add_argument("active", type=bool, required=False)
 
 adminFields = {
     "id": fields.String,
@@ -78,13 +79,14 @@ class ListAdminPPDK(Resource):
     @jwt_required()
     @marshal_with(adminFields)
     def get(self):
-        ppdk = Admin.query.all()
+        ppdk = Admin.query.filter(Admin.active).all()
         return ppdk, 200
 
     @jwt_required()
     def post(self):
         args = adminParser.parse_args()
-        ppdk = PPDK.query.filter_by(id=args["ppdk"]).first_or_404("PPDK not found")
+        ppdk = PPDK.query.filter_by(
+            id=args["ppdk"]).first_or_404("PPDK not found")
         new_admin = Admin(
             email=args["email"],
             nama=args["nama"],
@@ -110,13 +112,25 @@ class AdminPPDK(Resource):
     @jwt_required()
     def put(self, id):
         args = adminParser.parse_args()
-        ppdk = Admin.query.filter_by(id=id).first_or_404()
-        ppdk.nama = args["nama"]
-        ppdk.jawatan = args["jawatan"]
-        ppdk.ppdk_id = args["ppdk_id"]
-        ppdk.no_tel = args["no_tel"]
+        admin = Admin.query.filter_by(id=id).first_or_404("Admin tidak wujud")
+
+        admin.email = args.get("email", admin.email)
+        admin.nama = args.get("nama", admin.nama)
+        admin.jawatan = args.get("jawatan", admin.jawatan)
+        admin.active = args.get("active", admin.active)
+
+        if "notel" in args:
+            notel = Phone.query.filter_by(admin=admin).first()
+            if notel:
+                notel.no_tel = args.get("notel")
+            else:
+                notel = Phone(admin=admin, no_tel=args.get("notel"))
+                db.session.add(notel)
 
         db.session.commit()
+
+        if "active" in args:
+            return {"message": "Admin berjaya dipadam"}, 200
 
         return {"message": "Berjaya kemas kini"}, 200
 

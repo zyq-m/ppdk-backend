@@ -20,8 +20,8 @@ class PPDK(db.Model):
     nama = db.Column(db.String(80), nullable=False)
     negeri = db.Column(db.String(100), nullable=False)
     alamat = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, server_default=func.now())
     active = db.Column(db.Boolean, server_default='1')
+    created_at = db.Column(db.DateTime, server_default=func.now())
 
     admins = db.relationship("Admin", backref="ppdk")
     no_tel = db.relationship("Phone", backref="ppdk_lookup", uselist=False)
@@ -39,6 +39,7 @@ class Admin(db.Model):
     password = db.Column(db.Text, nullable=False)
     ppdk_id = db.Column(db.Integer, db.ForeignKey(
         "ppdk_lookup.id"), nullable=False)
+    active = db.Column(db.Boolean, server_default='1')
     created_at = db.Column(db.DateTime, server_default=func.now())
 
     no_tel = db.relationship("Phone", backref="admin")
