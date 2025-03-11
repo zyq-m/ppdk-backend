@@ -4,8 +4,10 @@ from model import (
     Role,
     PPDK,
     Phone,
+    KategoriOKU, Soalan, SoalanConfig
 )
 from extensions import f_bcrypt
+import json
 
 
 def seed_db():
@@ -33,6 +35,34 @@ def seed_db():
     )
     superPhone = Phone(no_tel="01119650612", admin=superAcc)
     adminPhone = Phone(no_tel="01119650613", admin=admin)
+
+    # seed kategori
+    # seed soalan & kriteria
+    with open('seed/soalan.json', 'r') as soalan:
+        soalan_json = json.load(soalan)
+    with open('seed/kriteria.json', 'r') as kriteria:
+        kriteria_json = json.load(kriteria)
+    for kategori in kriteria_json:
+        kat = KategoriOKU(
+            kategori=kategori.get("kategori"),
+            min_umur=kategori.get("min_umur"),
+            max_umur=kategori.get("max_umur"),
+            pemarkahan=1,
+            skor=str(kategori.get("skor")),
+        )
+        kriteria_list = [
+            SoalanConfig(
+                kriteria=kriteria.get('kriteria'),
+                purata_skor=kriteria.get('purata'),
+                kategori_oku=kat,
+                soalan=[
+                    Soalan(
+                        soalan=soalan.get('soalan'),
+                        skor=soalan.get('skor'),
+                        kategori_oku=kat
+                    ) for soalan in soalan_json]
+            ) for kriteria in kategori.get("kriteria")]
+        db.session.add_all(kriteria_list)
 
     db.session.add_all(
         [
