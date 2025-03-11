@@ -8,7 +8,7 @@ from utils.umur import UmurCalculator
 
 from routes.setup import extendedSoalan
 
-from model import db, Assessment, Soalan
+from model import db, Assessment, Soalan, KategoriOKU
 
 bp = Blueprint("assessment", __name__, url_prefix="/assessment")
 api = Api(bp)
@@ -48,18 +48,32 @@ class Assess(Resource):
 
     @jwt_required()
     def post(self, id):
+        # check assessment is exist
+        # check pemarkahan
+        # store result based on pemarkahan
         args = assessmentParser.parse_args()
         assessment = Assessment.query.filter_by(
             pelatih_id=args["pelatih_id"], kategori_id=id
         ).first()
+
+        kategori = KategoriOKU.query.filter_by(
+            id=id).first_or_404('Kategori OKU tidak wujud')
+        pemarkahan = kategori.pemarkahan
 
         jawapan = json.loads(args["jawapan"])
         skorKeseluruhan = ScoreCalculator(jawapan)
 
         result = defaultdict(int)
         for key, val in jawapan.items():
-            soalan = Soalan.query.filter_by(id=key).first_or_404("Tidak dijumpai")
-            result[soalan.kriteria_id] += int(val)
+            # criteria based pemarkahan
+            if pemarkahan == 1:
+                soalan = Soalan.query.filter_by(
+                    id=key).first_or_404("Tidak dijumpai")
+                result[soalan.kriteria_id] += int(val)
+
+            # total based pemarkahan
+            if pemarkahan == 2:
+                result[key] = int(val)
         result = json.dumps(result)
 
         if assessment:
@@ -89,9 +103,19 @@ class Assess(Resource):
         pass
 
 
+extendAsessment = {
+    **assessmentFields,
+    "pelatih": fields.Nested({
+        "id": fields.String,
+        "nama": fields.String,
+        "umur": fields.Integer,
+    })
+}
+
+
 class ListPelatih(Resource):
     @jwt_required()
-    @marshal_with(assessmentFields)
+    @marshal_with(extendAsessment)
     def get(self):
         pelatih = Assessment.query.all()
 
