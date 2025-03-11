@@ -48,7 +48,7 @@ def seed_db():
             min_umur=kategori.get("min_umur"),
             max_umur=kategori.get("max_umur"),
             pemarkahan=1,
-            skor=str(kategori.get("skor")),
+            skor=kategori.get("skor"),
         )
         kriteria_list = [
             SoalanConfig(
