@@ -16,6 +16,7 @@ okuFields = {
     "kategori": fields.String,
     "minUmur": fields.Integer(attribute="min_umur"),
     "maxUmur": fields.Integer(attribute="max_umur"),
+    "pemarkahan": fields.Integer,
     "skor": fields.List(fields.List(fields.Integer)),
     "kriteria": fields.Nested(
         {
@@ -43,7 +44,7 @@ class SetupOKU(Resource):
     @jwt_required()
     @marshal_with(okuFields)
     def get(self):
-        oku = KategoriOKU.query.all()
+        oku = KategoriOKU.query.filter(KategoriOKU.active).all()
         return oku
 
     @jwt_required()
@@ -66,6 +67,7 @@ class SetupOKU(Resource):
             kategori=args.get("kategori"),
             min_umur=args.get("minUmur"),
             max_umur=args.get("maxUmur"),
+            pemarkahan=args.get("pemarkahan"),
             skor=[
                 [int(min), int(max)]
                 for min, max in (
@@ -79,6 +81,63 @@ class SetupOKU(Resource):
         db.session.commit()
 
         return {"message": "Kategori berjaya didaftarkan"}, 201
+
+
+class Kategori(Resource):
+    @jwt_required()
+    def put(self, id):
+        args = request.json
+        kategori = KategoriOKU.query.filter_by(
+            id=id).first_or_404("Kategori tidak wujud")
+
+        kategori.kategori = args.get("kategori", kategori.kategori)
+        kategori.min_umur = args.get("minUmur", kategori.min_umur)
+        kategori.max_umur = args.get("maxUmur", kategori.max_umur)
+        kategori.pemarkahan = args.get("pemarkahan", kategori.pemarkahan)
+        kategori.active = args.get("active", kategori.active)
+        kategori.skor = [
+            [int(min), int(max)]
+            for min, max in (
+                num.split("-") for num in args.get("skorKeseluruhan").split(",")
+            )
+        ] if "skorKeseluruhan" in args else kategori.skor
+
+        # Update kriteria
+
+        for kr in args.get("kriteria"):
+            kriteriaConf = SoalanConfig.query.filter_by(
+                id=kr.get("kId")).first()
+
+            # update kriteria if exist
+            if kriteriaConf:
+                kriteriaConf.kriteria = kr.get(
+                    'kriteria', kriteriaConf.kriteria)
+                kriteriaConf.purata_skor = [
+                    [int(min), int(max)]
+                    for min, max in (
+                        num.split("-") for num in kr.get("purataSkor").split(",")
+                    )
+                ] if "purataSkor" in kr else kriteriaConf.purata_skor
+            else:
+                # add new kriteria to db
+                new_kriteria = SoalanConfig(
+                    kriteria=kr.get("kriteria"),
+                    purata_skor=[
+                        [int(min), int(max)]
+                        for min, max in (
+                            num.split("-") for num in kr.get("purataSkor").split(",")
+                        )
+                    ],
+                    kategori_id=id
+                )
+                db.session.add(new_kriteria)
+
+        db.session.commit()
+
+        if "active" in args:
+            return {"message": "Kategori OKU berjaya dipadam"}, 200
+
+        return {"message": "Kategori OKU berjaya dikemaskini"}, 200
 
 
 extendedSoalan = {
@@ -143,4 +202,5 @@ class SetupSoalan(Resource):
 
 
 api.add_resource(SetupOKU, "/oku")
+api.add_resource(Kategori, "/oku/<int:id>")
 api.add_resource(SetupSoalan, "/soalan/<int:id>")

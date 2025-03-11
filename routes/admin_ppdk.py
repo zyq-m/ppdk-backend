@@ -114,12 +114,12 @@ class AdminPPDK(Resource):
         args = adminParser.parse_args()
         admin = Admin.query.filter_by(id=id).first_or_404("Admin tidak wujud")
 
-        admin.email = args.get("email", admin.email)
-        admin.nama = args.get("nama", admin.nama)
-        admin.jawatan = args.get("jawatan", admin.jawatan)
-        admin.active = args.get("active", admin.active)
+        admin.email = args.get("email") or admin.email
+        admin.nama = args.get("nama") or admin.nama
+        admin.jawatan = args.get("jawatan") or admin.jawatan
+        admin.active = args.get("active") or admin.active
 
-        if "notel" in args:
+        if args.get("notel"):
             notel = Phone.query.filter_by(admin=admin).first()
             if notel:
                 notel.no_tel = args.get("notel")
@@ -129,7 +129,7 @@ class AdminPPDK(Resource):
 
         db.session.commit()
 
-        if "active" in args:
+        if args.get("active"):
             return {"message": "Admin berjaya dipadam"}, 200
 
         return {"message": "Berjaya kemas kini"}, 200

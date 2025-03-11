@@ -127,7 +127,9 @@ class KategoriOKU(db.Model):
     kategori = db.Column(db.String(255), nullable=False)
     min_umur = db.Column(db.Integer, nullable=True)
     max_umur = db.Column(db.Integer, nullable=True)
+    pemarkahan = db.Column(db.Integer, nullable=False)
     skor = db.Column(db.JSON, nullable=False)
+    active = db.Column(db.Boolean, server_default='1')
     created_at = db.Column(db.DateTime, server_default=func.now())
 
     kriteria_list = db.relationship("SoalanConfig", backref="kategori_oku")

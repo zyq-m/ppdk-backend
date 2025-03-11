@@ -58,12 +58,12 @@ class PpdkController(Resource):
             return {"message": "Cawangan PPDK tidak wujud"}, 404
 
         args = ppdkParser.parse_args()
-        ppdk.nama = args.get("nama", ppdk.nama)
-        ppdk.alamat = args.get("alamat", ppdk.alamat)
-        ppdk.negeri = args.get("negeri", ppdk.negeri)
-        ppdk.active = args.get("active", ppdk.active)
+        ppdk.nama = args.get("nama") or ppdk.nama
+        ppdk.alamat = args.get("alamat") or ppdk.alamat
+        ppdk.negeri = args.get("negeri") or ppdk.negeri
+        ppdk.active = args.get("active") or ppdk.active
 
-        if "notel" in args:
+        if args.get("notel"):
             notel = Phone.query.filter_by(ppdk_lookup=ppdk).first()
             if notel:
                 notel.no_tel = args["notel"]
@@ -73,7 +73,7 @@ class PpdkController(Resource):
 
         db.session.commit()
 
-        if "active" in args:
+        if args.get("active"):
             return {"message": "Cawangan PPDK berjaya dipadam"}, 200
 
         return {"message": "Cawangan PPDK berjaya dikemaskini"}, 200
