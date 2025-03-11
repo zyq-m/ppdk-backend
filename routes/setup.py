@@ -1,3 +1,4 @@
+import json
 from flask import Blueprint, request
 from flask_restful import Api, Resource, reqparse, fields, marshal_with
 from flask_jwt_extended import get_jwt_identity, jwt_required
@@ -22,9 +23,7 @@ okuFields = {
         {
             "id": fields.String,
             "kriteria": fields.String,
-            "purataSkor": fields.List(
-                fields.List(fields.Integer), attribute="purata_skor"
-            ),
+            "purataSkor": fields.String(attribute="purata_skor")
         },
         attribute="kriteria_list",
     ),
@@ -112,12 +111,19 @@ class Kategori(Resource):
             if kriteriaConf:
                 kriteriaConf.kriteria = kr.get(
                     'kriteria', kriteriaConf.kriteria)
-                kriteriaConf.purata_skor = [
-                    [int(min), int(max)]
-                    for min, max in (
-                        num.split("-") for num in kr.get("purataSkor").split(",")
-                    )
-                ] if "purataSkor" in kr else kriteriaConf.purata_skor
+
+                if kategori.pemarkahan == 1:
+                    # criteria based score
+                    kriteriaConf.purata_skor = [
+                        [int(min), int(max)]
+                        for min, max in (
+                            num.split("-") for num in kr.get("purataSkor").split(",")
+                        )
+                    ] if "purataSkor" in kr else kriteriaConf.purata_skor
+                else:
+                    # total based score
+                    kriteriaConf.purata_skor = kr.get(
+                        'purataSkor', kriteriaConf.purata_skor)
             else:
                 # add new kriteria to db
                 new_kriteria = SoalanConfig(
