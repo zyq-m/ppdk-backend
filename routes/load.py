@@ -11,6 +11,7 @@ def load_soalan():
     data = [
         {
             "kategori": soalan.kategori_id,
+            "kriteria": soalan.kriteria_id,
             "soalan": soalan.soalan,
             "skor": soalan.skor,
         } for soalan in soalan_list]
@@ -31,7 +32,15 @@ def load_oku():
                 {
                     "kriteria": kriteria.kriteria,
                     "purata": kriteria.purata_skor,
-                } for kriteria in oku.kriteria_list]
+                    "soalan": [
+                        {
+                            "kategori": soalan.kategori_id,
+                            "kriteria": soalan.kriteria_id,
+                            "soalan": soalan.soalan,
+                            "skor": soalan.skor,
+                        } for soalan in kriteria.soalan
+                    ]
+                } for kriteria in oku.kriteria_list],
         } for oku in oku_list]
 
     return jsonify(data), 200

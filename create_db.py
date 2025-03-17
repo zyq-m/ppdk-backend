@@ -35,14 +35,28 @@ def seed_db():
     )
     superPhone = Phone(no_tel="01119650612", admin=superAcc)
     adminPhone = Phone(no_tel="01119650613", admin=admin)
+    seed_soalan()
 
+    db.session.add_all(
+        [
+            superAdmin,
+            adminRole,
+            pelatihRole,
+            ppdk,
+            superAcc,
+            admin,
+            superPhone,
+            adminPhone,
+        ]
+    )
+
+
+def seed_soalan():
     # seed kategori
     # seed soalan & kriteria
     with open('seed/soalan.json', 'r') as soalan:
         soalan_json = json.load(soalan)
-    with open('seed/kriteria.json', 'r') as kriteria:
-        kriteria_json = json.load(kriteria)
-    for kategori in kriteria_json:
+    for kategori in soalan_json:
         kat = KategoriOKU(
             kategori=kategori.get("kategori"),
             min_umur=kategori.get("min_umur"),
@@ -60,24 +74,10 @@ def seed_db():
                         soalan=soalan.get('soalan'),
                         skor=soalan.get('skor'),
                         kategori_oku=kat
-                    ) for soalan in soalan_json]
-            ) for kriteria in kategori.get("kriteria")]
+                    ) for soalan in kriteria.get('soalan')]
+            ) for kriteria in kategori.get('kriteria')]
         db.session.add_all(kriteria_list)
 
-    db.session.add_all(
-        [
-            superAdmin,
-            adminRole,
-            pelatihRole,
-            ppdk,
-            superAcc,
-            admin,
-            superPhone,
-            adminPhone,
-        ]
-    )
-    db.session.commit()
-
-
 with app.app_context():
-    seed_db()
+    seed_soalan()
+    db.session.commit()
