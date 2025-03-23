@@ -93,7 +93,8 @@ extendFields = {
     "sudahLawat": fields.String(attribute="is_lawat"),
     "keperluan": fields.String,
     "no_tel": fields.List(
-        fields.Nested({"no": fields.String(attribute="no_tel"), "type": fields.String})
+        fields.Nested({"no": fields.String(
+            attribute="no_tel"), "type": fields.String})
     ),
     "penjaga": fields.List(fields.Nested(penjagaField)),
     "keupayaan": fields.Nested(keupayaanField),
@@ -111,17 +112,17 @@ class ListPelatih(Resource):
     @jwt_required()
     def get(self):
         payload = get_jwt_identity()
-        admin_ppdk = Admin.query.filter_by(email=payload.get("email")).first_or_404()
+        admin_ppdk = Admin.query.filter_by(
+            email=payload.get("email")).first_or_404()
         pelatih = Pelatih.query.filter_by(admin_ppdk=admin_ppdk).all()
 
         if payload["roleId"] == 1:
             pelatih = Pelatih.query.all()
 
         for p in pelatih:
-            umur = UmurCalculator(p.dob)
+            umur = UmurCalculator(p.no_kp)
             p.umur = umur.get_age()
             p.jantina = "Lelaki" if p.jantina == "1" else "Perempuan"
-            print(p.assessment)
 
         return pelatih, 200
 
@@ -149,14 +150,17 @@ class ListPelatih(Resource):
         # if not v.validate(arg):
         #     return "error", 400
 
-        admin_ppdk = Admin.query.filter_by(email=payload.get("email")).first_or_404()
+        admin_ppdk = Admin.query.filter_by(
+            email=payload.get("email")).first_or_404()
+
+        umur = UmurCalculator(args.get('no_kp'))
 
         new_pelatih = Pelatih(
             nama=args.get("nama"),
             jantina=args.get("jantina"),
             no_kp=args.get("no_kp"),
             no_oku=args.get("no_pendaftaran"),
-            dob=args.get("dob"),
+            dob=umur.get_dob(),
             agama=args.get("agama"),
             kaum=args.get("bangsa"),
             bil_adik=args.get("bilAdik"),
@@ -170,6 +174,7 @@ class ListPelatih(Resource):
             is_lawat=args.get("sudahLawat"),
             keperluan=args.get("keperluan"),
             daftar_oleh=admin_ppdk.id,
+            ppdk_id=admin_ppdk.ppdk_id
         )
 
         k = args.get("keupayaan")
@@ -201,13 +206,13 @@ class ListPelatih(Resource):
             tamat_pem=t.get("tamatIns"),
         )
 
-        p = args.get("penjaga")
-        new_penjaga = [
-            Penjaga(
+        for pen in args.get("penjaga"):
+            umur_pen = UmurCalculator(pen.get('noKp'))
+            penjaga = Penjaga(
                 pelatih=new_pelatih,
                 nama=pen.get("nama"),
                 no_kp=pen.get("noKp"),
-                dob=pen.get("dob"),
+                dob=umur_pen.get_dob(),
                 pekerjaan=pen.get("pekerjaan"),
                 pendapatan=pen.get("pendapatan"),
                 hubungan=pen.get("hubungan"),
@@ -217,8 +222,8 @@ class ListPelatih(Resource):
                 kadar_ban=pen.get("kadar"),
                 agensi_ban=pen.get("agensi"),
             )
-            for pen in p
-        ]
+            db.session.add(penjaga)
+
         no_tel = [
             Phone(
                 pelatih=new_pelatih,
@@ -228,7 +233,8 @@ class ListPelatih(Resource):
             for noTel in args.get("no_tel")
         ]
 
-        db.session.add_all([new_pelatih, *new_penjaga, *no_tel, new_keu, new_tam])
+        db.session.add_all(
+            [new_pelatih, *no_tel, new_keu, new_tam])
         db.session.commit()
 
         return {"message": "Berjaya didaftarkan"}, 201
@@ -245,7 +251,7 @@ class PelatihInfo(Resource):
             score = ScoreCalculator(jawapan)
             p.indicator = score.classify_score()
 
-        umur = UmurCalculator(pelatih.dob)
+        umur = UmurCalculator(pelatih.no_kp)
         pelatih.umur = umur.get_age()
         return pelatih, 200
 

@@ -38,7 +38,7 @@ class Assess(Resource):
 
         jawapan = ast.literal_eval(assessment.jawapan)
         score = ScoreCalculator(jawapan)
-        umur = UmurCalculator(assessment.pelatih.dob)
+        umur = UmurCalculator(assessment.pelatih.no_kp)
 
         assessment.pelatih.umur = umur.get_age()
         assessment.indicator = score.classify_score()
@@ -122,7 +122,7 @@ class ListPelatih(Resource):
         for p in pelatih:
             jawapan = ast.literal_eval(p.jawapan)
             score = ScoreCalculator(jawapan)
-            umur = UmurCalculator(p.pelatih.dob)
+            umur = UmurCalculator(p.pelatih.no_kp)
 
             p.pelatih.umur = umur.get_age()
             p.indicator = score.classify_score()
