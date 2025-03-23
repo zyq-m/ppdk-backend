@@ -1,7 +1,7 @@
 from sqlalchemy import func, Integer, cast, case
 from flask_restful import Resource
-from flask_jwt_extended import jwt_required
-from model import Assessment, Pelatih, Admin, PPDK, KategoriOKU
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from model import Assessment, Pelatih, Admin, PPDK, KategoriOKU, db
 from CONSTANT import NEGERI
 import ast
 from utils.score import ScoreCalculator
@@ -10,12 +10,26 @@ from utils.score import ScoreCalculator
 class Analytic(Resource):
     @jwt_required()
     def get(self):
+        user = get_jwt_identity()
+
         data = {
             "ppdk": PPDK.query.count(),
             "petugas": Admin.query.count(),
             "pelatih": Pelatih.query.count(),
             "penilaian": Assessment.query.count()
         }
+
+        if user['roleId'] == 2:
+            data = {
+                "petugas": Admin.query.filter_by(ppdk_id=user['ppdkId']).count(),
+                "pelatih": Pelatih.query.filter_by(ppdk_id=user['ppdkId']).count(),
+                "penilaian": db.session.query(Assessment.id)
+                .join(Pelatih)
+                .join(Admin)
+                .filter(Admin.ppdk_id == user['ppdkId'])
+                .distinct()
+                .count()
+            }
 
         return data, 200
 

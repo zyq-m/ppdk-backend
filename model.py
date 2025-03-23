@@ -24,6 +24,7 @@ class PPDK(db.Model):
     created_at = db.Column(db.DateTime, server_default=func.now())
 
     admins = db.relationship("Admin", backref="ppdk")
+    pelatih_list = db.relationship("Pelatih", backref="pelatih")
     no_tel = db.relationship("Phone", backref="ppdk_lookup", uselist=False)
 
 
@@ -65,6 +66,8 @@ class Pelatih(db.Model):
     negeri = db.Column(db.String(255), nullable=False)
     daftar_oleh = db.Column(db.Integer, db.ForeignKey(
         "admin_ppdk.id"), nullable=False)
+    ppdk_id = db.Column(db.Integer, db.ForeignKey(
+        "ppdk_lookup.id"), nullable=False)
     created_at = db.Column(db.DateTime, server_default=func.now())
 
     dtg_sendiri = db.Column(db.String(1), nullable=False)
