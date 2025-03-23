@@ -44,6 +44,10 @@ class SetupOKU(Resource):
     @marshal_with(okuFields)
     def get(self):
         oku = KategoriOKU.query.filter(KategoriOKU.active).all()
+
+        for ok in oku:
+            if ok.min_umur and ok.max_umur:
+                ok.kategori = f"{ok.kategori} ({ok.min_umur}-{ok.max_umur} tahun)"
         return oku
 
     @jwt_required()
