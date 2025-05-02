@@ -7,7 +7,7 @@ from CONSTANT import UPLOAD_FOLDER
 app = Flask(__name__)
 
 app.config.from_prefixed_env()
-app.config["SQLALCHEMY_DATABASE_URI"] = "mysql://root@localhost/ppdk_dev5"
+app.config["SQLALCHEMY_DATABASE_URI"] = "mysql://root@localhost/ppdk_dev4"
 app.config["JWT_SECRET_KEY"] = "super-secret"
 app.config["JWT_VERIFY_SUB"] = False  # Disable sub validation
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=30)
