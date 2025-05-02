@@ -78,6 +78,7 @@ def seed_soalan():
             ) for kriteria in kategori.get('kriteria')]
         db.session.add_all(kriteria_list)
 
+
 with app.app_context():
     seed_soalan()
     db.session.commit()

@@ -76,6 +76,7 @@ class Pelatih(db.Model):
     is_lawat = db.Column(db.String(1), nullable=False)
     keperluan = db.Column(db.String(100), nullable=True)
     avatar = db.Column(db.Text, nullable=False)
+    kad_oku = db.Column(db.Text, nullable=False)
 
     assessment = db.relationship("Assessment", backref="pelatih")
     penjaga = db.relationship("Penjaga", backref="pelatih")
