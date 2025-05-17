@@ -8,7 +8,7 @@ from utils.umur import UmurCalculator
 
 from routes.setup import extendedSoalan
 
-from model import db, Assessment, Soalan, KategoriOKU
+from model import db, Assessment, Soalan, KategoriOKU, SoalanConfig
 
 bp = Blueprint("assessment", __name__, url_prefix="/assessment")
 api = Api(bp)
@@ -74,6 +74,39 @@ class Assess(Resource):
             # total based pemarkahan
             if pemarkahan == 2:
                 result[key] = int(val)
+
+        # handle SDQ skor
+        if pemarkahan == 1:
+            emosi = 0
+            tingkah_laku = 0
+            hiperaktif = 0
+            rakan_sebaya = 0
+            for key, val in result.items():
+                soalan = SoalanConfig.query.filter_by(id=key).first()
+                kriteria = soalan.kriteria.lower()
+                if "emosi" in kriteria:
+                    print('emosial', val, key)
+                    emosi = int(val)
+                if "kesukaran tingkah laku" in kriteria:
+                    print('tingkah laku', val, key)
+                    tingkah_laku = int(val)
+                if "hiperaktif" in kriteria:
+                    print('hiper', val, key)
+                    hiperaktif = int(val)
+                if "rakan sebaya" in kriteria:
+                    print('rakan', val, key)
+                    rakan_sebaya = int(val)
+
+            for kriteria in kategori.kriteria_list:
+                k_name = kriteria.kriteria.lower()
+                if "keseluruhan kesukaran" in k_name:
+                    result[kriteria.id] = emosi + \
+                        tingkah_laku + hiperaktif + rakan_sebaya
+                if "dalaman" in k_name:
+                    result[kriteria.id] = emosi + rakan_sebaya
+                if "luaran" in k_name:
+                    result[kriteria.id] = tingkah_laku + hiperaktif
+
         result = json.dumps(result)
 
         if assessment:
