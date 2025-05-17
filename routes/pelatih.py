@@ -1,7 +1,8 @@
 import ast
 import os
 from flask import Blueprint, request, current_app
-from flask_restful import Api, Resource, reqparse, fields, marshal_with, abort
+from sqlalchemy.exc import IntegrityError
+from flask_restful import Api, Resource, fields, marshal_with, abort
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from utils.score import ScoreCalculator
 from utils.umur import UmurCalculator
@@ -92,7 +93,7 @@ extendFields = {
     "sudahLawat": fields.String(attribute="is_lawat"),
     "keperluan": fields.String,
     "no_tel": fields.List(
-        fields.Nested({"no": fields.String(
+        fields.Nested({"id": fields.String, "no": fields.String(
             attribute="no_tel"), "type": fields.String})
     ),
     "penjaga": fields.List(fields.Nested(penjagaField)),
@@ -164,6 +165,15 @@ class ListPelatih(Resource):
         admin_ppdk = Admin.query.filter_by(
             email=payload.get("email")).first_or_404()
 
+        # Check no ic & no oku
+        ic_exist = Pelatih.query.filter_by(no_kp=args.get('no_kp')).first()
+        if ic_exist:
+            return {"message": "No KP pelatih telah wujud di dalam sistem."}, 400
+        oku_no_exist = Pelatih.query.filter_by(
+            no_oku=args.get('no_pendaftaran')).first()
+        if oku_no_exist:
+            return {"message": "No Pendafataran OKU telah wujud di dalam sistem."}, 400
+
         try:
             umur = UmurCalculator(args.get('no_kp'))
             dob_pelatih = umur.get_dob()
@@ -211,15 +221,15 @@ class ListPelatih(Resource):
             pelatih=new_pelatih,
             bersekolah=t.get("isSekolah"),
             nama_sek=t.get("namaSek"),
-            tahap_sek=t.get("tahapSek"),
-            tempoh_sek=t.get("tempohSek"),
+            tahap_sek=int(t.get("tahapSek")) if t.get("tahapSek") else None,
+            tempoh_sek=int(t.get("tempohSek")) if t.get("tempohSek") else None,
             mula_sek=t.get("mulaSek"),
             tamat_sek=t.get("tamatSek"),
             pemulihan=t.get("isInsitusi"),
             nama_pem=t.get("namaIns"),
-            tempoh_pem=t.get("tempohIns"),
-            mula_pem=t.get("mulaIns"),
-            tamat_pem=t.get("tamatIns"),
+            tempoh_pem=t.get("tempohIns") if t.get("tempohIns") else None,
+            mula_pem=t.get("mulaIns") if t.get("mulaIns") else None,
+            tamat_pem=t.get("tamatIns") if t.get("tamatIns") else None,
         )
 
         for pen in args.get("penjaga"):
@@ -236,27 +246,35 @@ class ListPelatih(Resource):
                     oku=pen.get("ketidakUpayaan"),
                     bantuan=pen.get("isPenerima"),
                     nama_ban=pen.get("bantuan"),
-                    kadar_ban=pen.get("kadar"),
+                    kadar_ban=pen.get("kadar") if pen.get("kadar") else None,
                     agensi_ban=pen.get("agensi"),
                 )
                 db.session.add(penjaga)
             except:
                 return {"message": "No KP penjaga tidak betul."}, 400
 
-        no_tel = [
-            Phone(
+        for noTel in args.get("no_tel"):
+            exist_notel = Phone.query.filter_by(no_tel=noTel.get("no")).first()
+            if exist_notel:
+                return {'message': f'No telefon: {noTel.get("no")} telah wujud di dalam'}, 400
+
+            no_tel = Phone(
                 pelatih=new_pelatih,
                 no_tel=noTel.get("no"),
                 type=noTel.get("type"),
             )
-            for noTel in args.get("no_tel")
-        ]
+            db.session.add(no_tel)
 
-        db.session.add_all(
-            [new_pelatih, *no_tel, new_keu, new_tam])
-        db.session.commit()
+        try:
+            db.session.add_all(
+                [new_pelatih, new_keu, new_tam])
+            db.session.commit()
 
-        return {"message": "Berjaya didaftarkan"}, 201
+            return {"message": "Berjaya didaftarkan"}, 201
+        except Exception as e:
+            db.session.rollback()
+            print(e)
+            return {"message": "Error"}, 500
 
 
 class PelatihInfo(Resource):
@@ -372,13 +390,21 @@ class PelatihInfo(Resource):
                 penjaga.kadar_ban = pen.get("kadar")
                 penjaga.agensi_ban = pen.get("agensi")
 
-        # update phone number
-        for phone in pelatih.no_tel:
-            for tel in args.get("no_tel"):
-                phone.no_tel = tel.get("no")
-                phone.type = tel.get("type")
+        # Create a map from id to phone data from the payload
+        new_phones_map = {int(phone["id"]): phone for phone in args.get(
+            "no_tel") if phone.get("id")}
 
-        db.session.commit()
+        # update existing phone number
+        for phone in pelatih.no_tel:
+            if phone.id in new_phones_map:
+                updated_data = new_phones_map[phone.id]
+                phone.no_tel = updated_data.get("no", phone.no_tel)
+                phone.type = updated_data.get("type", phone.type)
+        try:
+            db.session.commit()
+        except Exception as e:
+            print(e)
+            return {"message": "Server error"}, 500
 
         return {"message": "Maklumat pelatih berjaya dikemaskini"}, 200
 
