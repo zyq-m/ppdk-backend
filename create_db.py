@@ -80,5 +80,5 @@ def seed_soalan():
 
 
 with app.app_context():
-    seed_soalan()
+    seed_db()
     db.session.commit()
