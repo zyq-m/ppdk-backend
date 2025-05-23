@@ -116,18 +116,12 @@ class Kategori(Resource):
                 kriteriaConf.kriteria = kr.get(
                     'kriteria', kriteriaConf.kriteria)
 
-                if kategori.pemarkahan == 1:
-                    # criteria based score
-                    kriteriaConf.purata_skor = [
-                        [int(min), int(max)]
-                        for min, max in (
-                            num.split("-") for num in kr.get("purataSkor").split(",")
-                        )
-                    ] if "purataSkor" in kr else kriteriaConf.purata_skor
-                else:
-                    # total based score
-                    kriteriaConf.purata_skor = kr.get(
-                        'purataSkor', kriteriaConf.purata_skor)
+                kriteriaConf.purata_skor = [
+                    [int(min), int(max)]
+                    for min, max in (
+                        num.split("-") for num in kr.get("purataSkor").split(",")
+                    )
+                ] if "purataSkor" in kr else kriteriaConf.purata_skor
             else:
                 # add new kriteria to db
                 new_kriteria = SoalanConfig(
