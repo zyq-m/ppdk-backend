@@ -64,6 +64,11 @@ class PPDKList(Resource):
     @jwt_required()
     def post(self):
         args = ppdkParser.parse_args()
+
+        existing_phone = Phone.query.filter_by(no_tel=args["notel"]).first()
+        if existing_phone:
+            return {"message": "No. telefon sudah wujud dalam sistem"}, 400
+
         ppdk = PPDK(nama=args["nama"],
                     alamat=args["alamat"], negeri=args["negeri"])
         notel = Phone(ppdk_lookup=ppdk, no_tel=args["notel"])
