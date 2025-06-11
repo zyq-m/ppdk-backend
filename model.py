@@ -72,7 +72,7 @@ class Pelatih(db.Model):
 
     dtg_sendiri = db.Column(db.String(1), nullable=False)
     ya_dtg = db.Column(db.String(50), nullable=True)
-    tidak_dtg = db.Column(db.String(1), nullable=True)
+    tidak_dtg = db.Column(db.JSON, nullable=True)
     is_lawat = db.Column(db.String(1), nullable=False)
     keperluan = db.Column(db.String(100), nullable=True)
     avatar = db.Column(db.Text, nullable=False)
@@ -97,7 +97,7 @@ class TahapKeupayaan(db.Model):
     is_bantuan = db.Column(db.String(1), nullable=False)
     alat_bantuan = db.Column(db.String(50), nullable=True)
     penyakit = db.Column(db.String(50), nullable=True)
-    sikap = db.Column(db.String(20), nullable=False)
+    sikap = db.Column(db.JSON, nullable=False)
     lain_sikap = db.Column(db.String(50), nullable=True)
     urus_diri = db.Column(db.JSON, nullable=False)
     bergerak = db.Column(db.JSON, nullable=False)
