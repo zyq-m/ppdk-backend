@@ -17,7 +17,7 @@ class PPDK(db.Model):
     __tablename__ = "ppdk_lookup"
 
     id = db.Column(db.Integer, primary_key=True)
-    nama = db.Column(db.String(80), nullable=False)
+    nama = db.Column(db.String(200), nullable=False)
     negeri = db.Column(db.String(100), nullable=False)
     alamat = db.Column(db.Text, nullable=False)
     active = db.Column(db.Boolean, server_default='1')
