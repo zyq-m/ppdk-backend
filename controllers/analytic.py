@@ -1,10 +1,9 @@
 from sqlalchemy import func, Integer, cast, case
-from flask_restful import Resource
+from flask_restful import Resource, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from model import Assessment, Pelatih, Admin, PPDK, KategoriOKU, db
+from model import Assessment, Pelatih, Admin, PPDK, db, SoalanConfig
 from CONSTANT import NEGERI
-import ast
-from utils.score import ScoreCalculator
+import json
 
 
 class Analytic(Resource):
@@ -92,61 +91,41 @@ class AnPelatih(Resource):
 class AnPenilaian(Resource):
     @jwt_required()
     def get(self):
-        # Initialize lookup with all categories pre-defined
-        lookup = {}
-        special_kategori = {1, 2}  # Using set for faster lookups
+        # Get kategori id from query params
+        kat_id = request.args.get('id')
+        negeri = request.args.get('negeri')
 
-        # Pre-populate lookup for all categories
-        all_kategori = KategoriOKU.query.all()
-        for kat in all_kategori:
-            # Determine category name based on availability of min_umur and max_umur
-            if kat.min_umur and kat.max_umur:
-                name = f"{kat.kategori} ({kat.min_umur}-{kat.max_umur} tahun)"
-            else:
-                name = kat.kategori
+        if not kat_id:
+            return {'message': 'Sila pilih kategori'}, 400
 
-            lookup[kat.id] = {
-                'rendah': 0,
-                'sederhana': 0,
-                'tinggi': 0,
-                'keseluruhan': 0,
-                'name': name
-            }
+        # Step 1: Initialize lookup with all kriteria and zero counts
+        all_kriteria = SoalanConfig.query.filter_by(kategori_id=kat_id).all()
 
-        # Process assessments
-        assessments = Assessment.query.all()
-        for assessment in assessments:
-            jawapan = ast.literal_eval(assessment.jawapan)
-            kategori_id = assessment.kategori_id
+        lookup = {
+            k.id: {"kriteria": k.kriteria, "value": 0}
+            for k in all_kriteria
+        }
 
-            if kategori_id in special_kategori:
-                # Process special categories
-                score = ScoreCalculator(jawapan)
-                indicator = score.classify_score()
+        # Step 2: Process assessments
+        assessments = db.session.query(Assessment).join(
+            Assessment.pelatih).filter(Assessment.kategori_id == kat_id)
 
-                # Update counts for special categories
-                if indicator == "Rendah":
-                    lookup[kategori_id]['rendah'] += 1
-                elif indicator == "Sederhana":
-                    lookup[kategori_id]['sederhana'] += 1
-                elif indicator == "Tinggi":
-                    lookup[kategori_id]['tinggi'] += 1
+        if negeri:
+            assessments = assessments.filter(Pelatih.negeri == negeri)
 
-            # Process non-special categories
-            if kategori_id not in special_kategori and assessment.kategori_oku:
-                kat_id = assessment.kategori_oku.id
-                lookup[kat_id]['keseluruhan'] += 1
+        assessments = assessments.all()
 
-        # Build result based on all categories
-        result = [
-            {
-                "kategori": lookup.get(kat.id, {}).get('name', kat.kategori),
-                "rendah": lookup.get(kat.id, {}).get('rendah', 0),
-                "sederhana": lookup.get(kat.id, {}).get('sederhana', 0),
-                "tinggi": lookup.get(kat.id, {}).get('tinggi', 0),
-                "keseluruhan": lookup.get(kat.id, {}).get('keseluruhan', 0),
-            }
-            for kat in all_kategori
-        ]
+        for assess in assessments:
+            skor = json.loads(assess.skor_kriteria)
+            max_value = max(skor.values())
+
+            for k, v in skor.items():
+                if v == max_value:
+                    k_id = int(k)  # Convert key to int if needed
+                    if k_id in lookup:
+                        lookup[k_id]['value'] += 1
+
+        # Step 3: Prepare result as list of objects
+        result = list(lookup.values())
 
         return result, 200

@@ -22,7 +22,6 @@ assessmentFields = {
     "jawapan": fields.String,
     "skor": fields.Integer,
     "skorKriteria": fields.String(attribute="skor_kriteria"),
-    "indicator": fields.String,
     "kategori_oku": fields.Nested(extendedSoalan),
     "created_at": fields.String,
 }
@@ -137,7 +136,13 @@ class Assess(Resource):
 
 
 extendAsessment = {
-    **assessmentFields,
+    "id": fields.String,
+    "kategori_oku": fields.Nested({
+        "id": fields.String,
+        "kategori": fields.String,
+    }),
+    "created_at": fields.String,
+    "highest_score": fields.String,
     "pelatih": fields.Nested({
         "id": fields.String,
         "nama": fields.String,
@@ -153,12 +158,17 @@ class ListPelatih(Resource):
         pelatih = Assessment.query.all()
 
         for p in pelatih:
-            jawapan = ast.literal_eval(p.jawapan)
-            score = ScoreCalculator(jawapan)
+            # process umur
             umur = UmurCalculator(p.pelatih.no_kp)
-
             p.pelatih.umur = umur.get_age()
-            p.indicator = score.classify_score()
+
+            # process skor
+            skor = json.loads(p.skor_kriteria)
+            max_skor = max(skor.values())
+            for k, v in skor.items():
+                if v == max_skor:
+                    kriteria = SoalanConfig.query.filter_by(id=k).first()
+                    p.highest_score = kriteria.kriteria
 
         return pelatih, 200
 
