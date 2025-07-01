@@ -284,9 +284,11 @@ class PelatihInfo(Resource):
         pelatih = Pelatih.query.filter_by(id=id).first_or_404()
 
         for p in pelatih.assessment:
-            jawapan = ast.literal_eval(p.jawapan)
-            score = ScoreCalculator(jawapan)
-            p.indicator = score.classify_score()
+            # process indicator
+            flat_values = sum(p.kategori_oku.skor, [])
+            max_value = max(flat_values)
+            calc = ScoreCalculator(max_value)
+            p.indicator = calc.score_category(p.skor)
 
         umur = UmurCalculator(pelatih.no_kp)
         pelatih.umur = umur.get_age()
