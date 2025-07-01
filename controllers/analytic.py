@@ -1,9 +1,10 @@
 from sqlalchemy import func, Integer, cast, case
 from flask_restful import Resource, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from model import Assessment, Pelatih, Admin, PPDK, db, SoalanConfig
+from model import Assessment, Pelatih, Admin, PPDK, db, SoalanConfig, KategoriOKU
 from CONSTANT import NEGERI
 import json
+from utils.score import ScoreCalculator
 
 
 class Analytic(Resource):
@@ -89,43 +90,62 @@ class AnPelatih(Resource):
 
 
 class AnPenilaian(Resource):
-    @jwt_required()
+    # @jwt_required()
     def get(self):
         # Get kategori id from query params
         kat_id = request.args.get('id')
         negeri = request.args.get('negeri')
 
-        if not kat_id:
-            return {'message': 'Sila pilih kategori'}, 400
+        # if not kat_id:
+        #     return {'message': 'Sila pilih kategori'}, 400
 
         # Step 1: Initialize lookup with all kriteria and zero counts
-        all_kriteria = SoalanConfig.query.filter_by(kategori_id=kat_id).all()
+        # all_kriteria = SoalanConfig.query.filter_by(kategori_id=kat_id).all()
 
-        lookup = {
-            k.id: {"kriteria": k.kriteria, "value": 0}
-            for k in all_kriteria
-        }
+        all_kategori = KategoriOKU.query.all()
+        lookup = {}
+
+        for k in all_kategori:
+            # Get the total score to define score label
+            flat_values = sum(k.skor, [])
+            max_value = max(flat_values)
+
+            # Process kategori name
+            if k.min_umur and k.max_umur:
+                name = f"{k.kategori} ({k.min_umur}-{k.max_umur} tahun)"
+            else:
+                name = k.kategori
+
+            lookup[k.id] = {
+                "kategori": name,
+                "totalScore": max_value,
+                'rendah': 0,
+                'sederhana': 0,
+                'tinggi': 0,
+                'sangatTinggi': 0,
+            }
 
         # Step 2: Process assessments
-        assessments = db.session.query(Assessment).join(
-            Assessment.pelatih).filter(Assessment.kategori_id == kat_id)
-
+        assessments = db.session.query(Assessment).join(Assessment.pelatih)
         if negeri:
             assessments = assessments.filter(Pelatih.negeri == negeri)
-
         assessments = assessments.all()
 
+        # Calculate score
         for assess in assessments:
-            skor = json.loads(assess.skor_kriteria)
-            max_value = max(skor.values())
+            kategori_id = assess.kategori_id
+            calc = ScoreCalculator(lookup[kategori_id]['totalScore'])
+            percentage = calc.score_percentage(assess.skor)
 
-            for k, v in skor.items():
-                if v == max_value:
-                    k_id = int(k)  # Convert key to int if needed
-                    if k_id in lookup:
-                        lookup[k_id]['value'] += 1
+            if percentage >= 90:
+                lookup[kategori_id]['sangatTinggi'] += 1
+            elif percentage >= 75:
+                lookup[kategori_id]['tinggi'] += 1
+            elif percentage >= 50:
+                lookup[kategori_id]['sederhana'] += 1
+            else:
+                lookup[kategori_id]['rendah'] += 1
 
-        # Step 3: Prepare result as list of objects
         result = list(lookup.values())
 
         return result, 200

@@ -36,12 +36,12 @@ class Assess(Resource):
         ).first_or_404("Pelatih tidak ditemui")
 
         jawapan = ast.literal_eval(assessment.jawapan)
-        score = ScoreCalculator(jawapan)
+        # score = ScoreCalculator(jawapan)
         umur = UmurCalculator(assessment.pelatih.no_kp)
 
         assessment.pelatih.umur = umur.get_age()
-        assessment.indicator = score.classify_score()
-        assessment.lagend = score.range_score()
+        # assessment.indicator = score.classify_score()
+        # assessment.lagend = score.range_score()
 
         return assessment, 200
 
@@ -142,7 +142,7 @@ extendAsessment = {
         "kategori": fields.String,
     }),
     "created_at": fields.String,
-    "highest_score": fields.String,
+    "indicator": fields.String,
     "pelatih": fields.Nested({
         "id": fields.String,
         "nama": fields.String,
@@ -155,20 +155,19 @@ class ListPelatih(Resource):
     @jwt_required()
     @marshal_with(extendAsessment)
     def get(self):
-        pelatih = Assessment.query.all()
+        pelatih = db.session.query(Assessment).join(
+            KategoriOKU).all()
 
         for p in pelatih:
             # process umur
             umur = UmurCalculator(p.pelatih.no_kp)
             p.pelatih.umur = umur.get_age()
 
-            # process skor
-            skor = json.loads(p.skor_kriteria)
-            max_skor = max(skor.values())
-            for k, v in skor.items():
-                if v == max_skor:
-                    kriteria = SoalanConfig.query.filter_by(id=k).first()
-                    p.highest_score = kriteria.kriteria
+            # process indicator
+            flat_values = sum(p.kategori_oku.skor, [])
+            max_value = max(flat_values)
+            calc = ScoreCalculator(max_value)
+            p.indicator = calc.score_category(p.skor)
 
         return pelatih, 200
 
