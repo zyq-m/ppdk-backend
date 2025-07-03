@@ -5,6 +5,7 @@ from flask_restful import Api, Resource, fields, reqparse, marshal_with
 from flask_jwt_extended import jwt_required
 from utils.score import ScoreCalculator
 from utils.umur import UmurCalculator
+from CONSTANT import SDQ_SCORING_MAP, BARTHEL_SCORING_MAP
 
 from routes.setup import extendedSoalan
 
@@ -60,7 +61,6 @@ class Assess(Resource):
         pemarkahan = kategori.pemarkahan
 
         jawapan = json.loads(args["jawapan"])
-        skorKeseluruhan = ScoreCalculator(jawapan)
 
         result = defaultdict(int)
         for key, val in jawapan.items():
@@ -84,41 +84,47 @@ class Assess(Resource):
                 soalan = SoalanConfig.query.filter_by(id=key).first()
                 kriteria = soalan.kriteria.lower()
                 if "emosi" in kriteria:
-                    print('emosial', val, key)
                     emosi = int(val)
                 if "kesukaran tingkah laku" in kriteria:
-                    print('tingkah laku', val, key)
                     tingkah_laku = int(val)
                 if "hiperaktif" in kriteria:
-                    print('hiper', val, key)
                     hiperaktif = int(val)
                 if "rakan sebaya" in kriteria:
-                    print('rakan', val, key)
                     rakan_sebaya = int(val)
 
             for kriteria in kategori.kriteria_list:
                 k_name = kriteria.kriteria.lower()
                 if "keseluruhan kesukaran" in k_name:
-                    result[kriteria.id] = emosi + \
-                        tingkah_laku + hiperaktif + rakan_sebaya
+                    totalScore = emosi + tingkah_laku + hiperaktif + rakan_sebaya
+                    result[kriteria.id] = totalScore
                 if "dalaman" in k_name:
                     result[kriteria.id] = emosi + rakan_sebaya
                 if "luaran" in k_name:
                     result[kriteria.id] = tingkah_laku + hiperaktif
 
+            # Define score indicator
+            calc_score = ScoreCalculator()
+            label = calc_score.calc_sdq_score(kategori.skor, totalScore)
+        else:
+            calc_score = ScoreCalculator(data=jawapan)
+            totalScore = calc_score.calc_score()
+            label = calc_score.calc_sdq_score(kategori.skor, totalScore)
+
         result = json.dumps(result)
 
         if assessment:
             assessment.jawapan = args["jawapan"]
-            assessment.skor = skorKeseluruhan.calc_score()
+            assessment.skor = totalScore
             assessment.skor_kriteria = result
+            assessment.label = label
         else:
             new_assessment = Assessment(
                 pelatih_id=args["pelatih_id"],
                 jawapan=args["jawapan"],
                 kategori_id=id,
-                skor=skorKeseluruhan.calc_score(),
+                skor=totalScore,
                 skor_kriteria=result,
+                label=label
             )
             db.session.add(new_assessment)
 
@@ -142,6 +148,7 @@ extendAsessment = {
         "kategori": fields.String,
     }),
     "created_at": fields.String,
+    "label": fields.String,
     "indicator": fields.String,
     "pelatih": fields.Nested({
         "id": fields.String,
@@ -155,19 +162,17 @@ class ListPelatih(Resource):
     @jwt_required()
     @marshal_with(extendAsessment)
     def get(self):
-        pelatih = db.session.query(Assessment).join(
-            KategoriOKU).all()
+        pelatih = Assessment.query.all()
 
         for p in pelatih:
             # process umur
             umur = UmurCalculator(p.pelatih.no_kp)
             p.pelatih.umur = umur.get_age()
 
-            # process indicator
-            flat_values = sum(p.kategori_oku.skor, [])
-            max_value = max(flat_values)
-            calc = ScoreCalculator(max_value)
-            p.indicator = calc.score_category(p.skor)
+            if p.kategori_id in {1, 2}:
+                p.indicator = SDQ_SCORING_MAP[p.label]
+            else:
+                p.indicator = BARTHEL_SCORING_MAP[p.label]
 
         return pelatih, 200
 

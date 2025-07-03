@@ -2,8 +2,8 @@ from sqlalchemy import func, Integer, cast, case
 from flask_restful import Resource, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from model import Assessment, Pelatih, Admin, PPDK, db, SoalanConfig, KategoriOKU
-from CONSTANT import NEGERI
-import json
+from CONSTANT import NEGERI, SDQ_SCORING_OBJ_MAP, BARTHEL_SCORING_OBJ_MAP
+from collections import defaultdict
 from utils.score import ScoreCalculator
 
 
@@ -103,27 +103,17 @@ class AnPenilaian(Resource):
         # all_kriteria = SoalanConfig.query.filter_by(kategori_id=kat_id).all()
 
         all_kategori = KategoriOKU.query.all()
-        lookup = {}
+        # Outer dict: kategori_id -> inner dict (default int)
+        lookup = defaultdict(lambda: defaultdict(int))
 
         for k in all_kategori:
-            # Get the total score to define score label
-            flat_values = sum(k.skor, [])
-            max_value = max(flat_values)
-
             # Process kategori name
             if k.min_umur and k.max_umur:
                 name = f"{k.kategori} ({k.min_umur}-{k.max_umur} tahun)"
             else:
                 name = k.kategori
 
-            lookup[k.id] = {
-                "kategori": name,
-                "totalScore": max_value,
-                'rendah': 0,
-                'sederhana': 0,
-                'tinggi': 0,
-                'sangatTinggi': 0,
-            }
+            lookup[k.id]["kategori"] = name
 
         # Step 2: Process assessments
         assessments = db.session.query(Assessment).join(Assessment.pelatih)
@@ -133,18 +123,11 @@ class AnPenilaian(Resource):
 
         # Calculate score
         for assess in assessments:
-            kategori_id = assess.kategori_id
-            calc = ScoreCalculator(lookup[kategori_id]['totalScore'])
-            percentage = calc.score_percentage(assess.skor)
+            kat_id = assess.kategori_id
 
-            if percentage >= 90:
-                lookup[kategori_id]['sangatTinggi'] += 1
-            elif percentage >= 75:
-                lookup[kategori_id]['tinggi'] += 1
-            elif percentage >= 50:
-                lookup[kategori_id]['sederhana'] += 1
-            else:
-                lookup[kategori_id]['rendah'] += 1
+            for k, v in SDQ_SCORING_OBJ_MAP.items() if kat_id in {1, 2} else BARTHEL_SCORING_OBJ_MAP.items():
+                if k == assess.label:
+                    lookup[kat_id][v] += 1
 
         result = list(lookup.values())
 

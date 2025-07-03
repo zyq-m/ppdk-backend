@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 import json
 
 from model import db, Admin, Phone, Pelatih, Penjaga, TahapKeupayaan, MaklumatTambahan
-from CONSTANT import ALLOWED_EXTENSIONS
+from CONSTANT import ALLOWED_EXTENSIONS, BARTHEL_SCORING_MAP, SDQ_SCORING_MAP
 from routes.assessment import assessmentFields
 
 bp = Blueprint("pelatih", __name__, url_prefix="/pelatih")
@@ -285,10 +285,10 @@ class PelatihInfo(Resource):
 
         for p in pelatih.assessment:
             # process indicator
-            flat_values = sum(p.kategori_oku.skor, [])
-            max_value = max(flat_values)
-            calc = ScoreCalculator(max_value)
-            p.indicator = calc.score_category(p.skor)
+            if p.kategori_id in {1, 2}:
+                p.indicator = SDQ_SCORING_MAP[p.label]
+            else:
+                p.indicator = BARTHEL_SCORING_MAP[p.label]
 
         umur = UmurCalculator(pelatih.no_kp)
         pelatih.umur = umur.get_age()

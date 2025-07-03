@@ -197,6 +197,7 @@ class Assessment(db.Model):
     jawapan = db.Column(db.JSON)
     skor = db.Column(db.JSON, nullable=False)
     skor_kriteria = db.Column(db.JSON, nullable=False)
+    label = db.Column(db.String(2), nullable=False)
     kategori_id = db.Column(db.Integer, db.ForeignKey(
         "oku_lookup.id"), nullable=False)
     created_at = db.Column(db.DateTime, server_default=func.now())
