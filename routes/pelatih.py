@@ -1,6 +1,5 @@
-import ast
 import os
-from flask import Blueprint, request, current_app
+from flask import Blueprint, request, current_app, jsonify
 from sqlalchemy.exc import IntegrityError
 from flask_restful import Api, Resource, fields, marshal_with, abort
 from flask_jwt_extended import get_jwt_identity, jwt_required
@@ -28,6 +27,7 @@ pelatihFields = {
     "umur": fields.Integer,
     "jantina": fields.String,
     "negeri": fields.String,
+    "is_aktif": fields.Boolean
 }
 
 penjagaField = {
@@ -296,112 +296,120 @@ class PelatihInfo(Resource):
 
     @jwt_required()
     def put(self, id):
-        # update avatar & oku card
-        avatar = request.files.get('avatar')
-        okuImg = request.files.get('okuImg')  # kad oku
-        upload_folder = current_app.config["UPLOAD_FOLDER"]
-
-        if (avatar and not allowed_file(avatar.filename)) or (okuImg and not allowed_file(okuImg.filename)):
-            return {"message": "Format gambar hendaklah dalam jpg, jpeg atau png"}, 400
-
-        # secure filename
-        secure_avatar = secure_filename(avatar.filename) if avatar else None
-        secure_okuImg = secure_filename(okuImg.filename) if okuImg else None
-
-        if avatar and allowed_file(avatar.filename):
-            if not os.path.exists(upload_folder):
-                os.makedirs(upload_folder)
-            avatar.save(os.path.join(upload_folder, secure_avatar))
-
-        if okuImg and allowed_file(okuImg.filename):
-            if not os.path.exists(upload_folder):
-                os.makedirs(upload_folder)
-            okuImg.save(os.path.join(upload_folder, secure_okuImg))
-
-        fd = request.form.get("json")
-        args = json.loads(fd)
         pelatih = Pelatih.query.filter_by(id=id).first_or_404()
 
-        try:
-            umur = UmurCalculator(args.get('no_kp'))
-            dob_pelatih = umur.get_dob()
-        except:
-            return {"message": "No KP pelatih tidak betul"}, 400
+        # Update status pelatih aktif/tak aktif
+        if 'json' not in request.form:
+            pelatih.is_aktif = not pelatih.is_aktif
 
-        # update peribadi info
-        pelatih.nama = args.get("nama")
-        pelatih.jantina = args.get("jantina")
-        pelatih.no_kp = args.get("no_kp")
-        pelatih.no_oku = args.get("no_pendaftaran")
-        pelatih.dob = dob_pelatih
-        pelatih.agama = args.get("agama")
-        pelatih.kaum = args.get("bangsa")
-        pelatih.bil_adik = args.get("bilAdik")
-        pelatih.anak_ke = args.get("bilKeluarga")
-        pelatih.alamat = args.get("alamat")
-        pelatih.negeri = args.get("negeri")
-        pelatih.dtg_sendiri = args.get("dtgSendiri")
-        pelatih.ya_dtg = args.get("yaDtg")
-        pelatih.tidak_dtg = args.get("tidakDtg")
-        pelatih.is_lawat = args.get("sudahLawat")
-        pelatih.keperluan = args.get("keperluan")
-        pelatih.avatar = secure_avatar if avatar else pelatih.avatar
-        pelatih.kad_oku = secure_okuImg if okuImg else pelatih.kad_oku
+        if request.form and request.files:
+            fd = request.form.get("json")
+            args = json.loads(fd)
+            # update avatar & oku card
+            avatar = request.files.get('avatar')
+            okuImg = request.files.get('okuImg')  # kad oku
+            upload_folder = current_app.config["UPLOAD_FOLDER"]
 
-        # update keupayaan info
-        k = args.get("keupayaan")
-        pelatih.keupayaan.tahap_oku = k.get("tahapOKU")
-        pelatih.keupayaan.is_bantuan = k.get("isBantuan")
-        pelatih.keupayaan.alat_bantuan = k.get("alatBantuan")
-        pelatih.keupayaan.penyakit = k.get("penyakit")
-        pelatih.keupayaan.sikap = k.get("sikap")
-        pelatih.keupayaan.lain_sikap = k.get("lainSikap")
-        pelatih.keupayaan.urus_diri = k.get("urusDiri")
-        pelatih.keupayaan.bergerak = k.get("bergerak")
+            if (avatar and not allowed_file(avatar.filename)) or (okuImg and not allowed_file(okuImg.filename)):
+                return {"message": "Format gambar hendaklah dalam jpg, jpeg atau png"}, 400
 
-        # tambahan info
-        t = args.get("tambahan")
-        pelatih.tambahan.bersekolah = t.get("isSekolah")
-        pelatih.tambahan.nama_sek = t.get("namaSek")
-        pelatih.tambahan.tahap_sek = t.get("tahapSek")
-        pelatih.tambahan.tempoh_sek = t.get("tempohSek")
-        pelatih.tambahan.mula_sek = t.get("mulaSek")
-        pelatih.tambahan.tamat_sek = t.get("tamatSek")
-        pelatih.tambahan.pemulihan = t.get("isInsitusi")
-        pelatih.tambahan.nama_pem = t.get("namaIns")
-        pelatih.tambahan.tempoh_pem = t.get("tempohIns")
-        pelatih.tambahan.mula_pem = t.get("mulaIns")
-        pelatih.tambahan.tamat_pem = t.get("tamatIns")
+            # secure filename
+            secure_avatar = secure_filename(
+                avatar.filename) if avatar else None
+            secure_okuImg = secure_filename(
+                okuImg.filename) if okuImg else None
 
-        for penjaga in pelatih.penjaga:
-            for pen in args.get('penjaga'):
-                umur_pen = UmurCalculator(pen.get('noKp'))
-                try:
-                    penjaga.dob = umur_pen.get_dob()
-                except:
-                    return {"message": "No KP penjaga tidak betul."}, 400
+            if avatar and allowed_file(avatar.filename):
+                if not os.path.exists(upload_folder):
+                    os.makedirs(upload_folder)
+                avatar.save(os.path.join(upload_folder, secure_avatar))
 
-                penjaga.nama = pen.get("nama")
-                penjaga.no_kp = pen.get("noKp")
-                penjaga.pekerjaan = pen.get("pekerjaan")
-                penjaga.pendapatan = pen.get("pendapatan")
-                penjaga.hubungan = pen.get("hubungan")
-                penjaga.oku = pen.get("ketidakUpayaan")
-                penjaga.bantuan = pen.get("isPenerima")
-                penjaga.nama_ban = pen.get("bantuan")
-                penjaga.kadar_ban = pen.get("kadar")
-                penjaga.agensi_ban = pen.get("agensi")
+            if okuImg and allowed_file(okuImg.filename):
+                if not os.path.exists(upload_folder):
+                    os.makedirs(upload_folder)
+                okuImg.save(os.path.join(upload_folder, secure_okuImg))
 
-        # Create a map from id to phone data from the payload
-        new_phones_map = {int(phone["id"]): phone for phone in args.get(
-            "no_tel") if phone.get("id")}
+            try:
+                umur = UmurCalculator(args.get('no_kp'))
+                dob_pelatih = umur.get_dob()
+            except:
+                return {"message": "No KP pelatih tidak betul"}, 400
 
-        # update existing phone number
-        for phone in pelatih.no_tel:
-            if phone.id in new_phones_map:
-                updated_data = new_phones_map[phone.id]
-                phone.no_tel = updated_data.get("no", phone.no_tel)
-                phone.type = updated_data.get("type", phone.type)
+            # update peribadi info
+            pelatih.nama = args.get("nama")
+            pelatih.jantina = args.get("jantina")
+            pelatih.no_kp = args.get("no_kp")
+            pelatih.no_oku = args.get("no_pendaftaran")
+            pelatih.dob = dob_pelatih
+            pelatih.agama = args.get("agama")
+            pelatih.kaum = args.get("bangsa")
+            pelatih.bil_adik = args.get("bilAdik")
+            pelatih.anak_ke = args.get("bilKeluarga")
+            pelatih.alamat = args.get("alamat")
+            pelatih.negeri = args.get("negeri")
+            pelatih.dtg_sendiri = args.get("dtgSendiri")
+            pelatih.ya_dtg = args.get("yaDtg")
+            pelatih.tidak_dtg = args.get("tidakDtg")
+            pelatih.is_lawat = args.get("sudahLawat")
+            pelatih.keperluan = args.get("keperluan")
+            pelatih.avatar = secure_avatar if avatar else pelatih.avatar
+            pelatih.kad_oku = secure_okuImg if okuImg else pelatih.kad_oku
+
+            # update keupayaan info
+            k = args.get("keupayaan")
+            pelatih.keupayaan.tahap_oku = k.get("tahapOKU")
+            pelatih.keupayaan.is_bantuan = k.get("isBantuan")
+            pelatih.keupayaan.alat_bantuan = k.get("alatBantuan")
+            pelatih.keupayaan.penyakit = k.get("penyakit")
+            pelatih.keupayaan.sikap = k.get("sikap")
+            pelatih.keupayaan.lain_sikap = k.get("lainSikap")
+            pelatih.keupayaan.urus_diri = k.get("urusDiri")
+            pelatih.keupayaan.bergerak = k.get("bergerak")
+
+            # tambahan info
+            t = args.get("tambahan")
+            pelatih.tambahan.bersekolah = t.get("isSekolah")
+            pelatih.tambahan.nama_sek = t.get("namaSek")
+            pelatih.tambahan.tahap_sek = t.get("tahapSek")
+            pelatih.tambahan.tempoh_sek = t.get("tempohSek")
+            pelatih.tambahan.mula_sek = t.get("mulaSek")
+            pelatih.tambahan.tamat_sek = t.get("tamatSek")
+            pelatih.tambahan.pemulihan = t.get("isInsitusi")
+            pelatih.tambahan.nama_pem = t.get("namaIns")
+            pelatih.tambahan.tempoh_pem = t.get("tempohIns")
+            pelatih.tambahan.mula_pem = t.get("mulaIns")
+            pelatih.tambahan.tamat_pem = t.get("tamatIns")
+
+            for penjaga in pelatih.penjaga:
+                for pen in args.get('penjaga'):
+                    umur_pen = UmurCalculator(pen.get('noKp'))
+                    try:
+                        penjaga.dob = umur_pen.get_dob()
+                    except:
+                        return {"message": "No KP penjaga tidak betul."}, 400
+
+                    penjaga.nama = pen.get("nama")
+                    penjaga.no_kp = pen.get("noKp")
+                    penjaga.pekerjaan = pen.get("pekerjaan")
+                    penjaga.pendapatan = pen.get("pendapatan")
+                    penjaga.hubungan = pen.get("hubungan")
+                    penjaga.oku = pen.get("ketidakUpayaan")
+                    penjaga.bantuan = pen.get("isPenerima")
+                    penjaga.nama_ban = pen.get("bantuan")
+                    penjaga.kadar_ban = pen.get("kadar")
+                    penjaga.agensi_ban = pen.get("agensi")
+
+            # Create a map from id to phone data from the payload
+            new_phones_map = {int(phone["id"]): phone for phone in args.get(
+                "no_tel") if phone.get("id")}
+
+            # update existing phone number
+            for phone in pelatih.no_tel:
+                if phone.id in new_phones_map:
+                    updated_data = new_phones_map[phone.id]
+                    phone.no_tel = updated_data.get("no", phone.no_tel)
+                    phone.type = updated_data.get("type", phone.type)
+
         try:
             db.session.commit()
         except Exception as e:
@@ -409,6 +417,23 @@ class PelatihInfo(Resource):
             return {"message": "Server error"}, 500
 
         return {"message": "Maklumat pelatih berjaya dikemaskini"}, 200
+
+    @jwt_required()
+    def delete(self, id):
+        # find pelatih
+        Pelatih.query.filter_by(id=id).first_or_404("Pelatih tidak dijumpai")
+
+        try:
+            # Delete pelatih
+            Pelatih.query.filter_by(id=id).delete()
+            db.session.commit()
+
+            return {"message": "Pelatih berjaya dipadam"}
+
+        except Exception as e:
+            db.session.rollback()
+            print(e)
+            return {"message": "Gagal memadam pelatih"}, 500
 
 
 api.add_resource(ListPelatih, "")

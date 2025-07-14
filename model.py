@@ -64,6 +64,7 @@ class Pelatih(db.Model):
     anak_ke = db.Column(db.Integer, nullable=False)
     alamat = db.Column(db.Text, nullable=False)
     negeri = db.Column(db.String(255), nullable=False)
+    is_aktif = db.Column(db.Boolean, server_default='1')
     daftar_oleh = db.Column(db.Integer, db.ForeignKey(
         "admin_ppdk.id"), nullable=False)
     ppdk_id = db.Column(db.Integer, db.ForeignKey(
