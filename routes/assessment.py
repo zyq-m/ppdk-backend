@@ -112,21 +112,21 @@ class Assess(Resource):
 
         result = json.dumps(result)
 
-        if assessment:
-            assessment.jawapan = args["jawapan"]
-            assessment.skor = totalScore
-            assessment.skor_kriteria = result
-            assessment.label = label
-        else:
-            new_assessment = Assessment(
-                pelatih_id=args["pelatih_id"],
-                jawapan=args["jawapan"],
-                kategori_id=id,
-                skor=totalScore,
-                skor_kriteria=result,
-                label=label
-            )
-            db.session.add(new_assessment)
+        # if assessment:
+        #     assessment.jawapan = args["jawapan"]
+        #     assessment.skor = totalScore
+        #     assessment.skor_kriteria = result
+        #     assessment.label = label
+        # else:
+        new_assessment = Assessment(
+            pelatih_id=args["pelatih_id"],
+            jawapan=args["jawapan"],
+            kategori_id=id,
+            skor=totalScore,
+            skor_kriteria=result,
+            label=label
+        )
+        db.session.add(new_assessment)
 
         db.session.commit()
 
