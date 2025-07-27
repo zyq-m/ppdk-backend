@@ -137,8 +137,22 @@ class Assess(Resource):
         pass
 
     @jwt_required()
-    def delete(self):
-        pass
+    def delete(self, id):
+        # find pelatih
+        Assessment.query.filter_by(id=id).first_or_404(
+            "Penilaian tidak dijumpai")
+
+        try:
+            # Delete pelatih
+            Assessment.query.filter_by(id=id).delete()
+            db.session.commit()
+
+            return {"message": "Penilaian berjaya dipadam"}
+
+        except Exception as e:
+            db.session.rollback()
+            print(e)
+            return {"message": "Gagal memadam penilaian"}, 500
 
 
 extendAsessment = {
