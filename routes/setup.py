@@ -19,6 +19,7 @@ okuFields = {
     "maxUmur": fields.Integer(attribute="max_umur"),
     "pemarkahan": fields.Integer,
     "skor": fields.List(fields.List(fields.Integer)),
+    "panduan": fields.String,
     "kriteria": fields.Nested(
         {
             "id": fields.String,

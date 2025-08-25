@@ -134,6 +134,7 @@ class KategoriOKU(db.Model):
     max_umur = db.Column(db.Integer, nullable=True)
     pemarkahan = db.Column(db.Integer, nullable=False)
     skor = db.Column(db.JSON, nullable=False)
+    panduan = db.Column(db.Text, nullable=False)
     active = db.Column(db.Boolean, server_default='1')
     created_at = db.Column(db.DateTime, server_default=func.now())
 
