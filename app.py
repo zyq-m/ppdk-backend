@@ -3,6 +3,7 @@ from flask import Flask, send_from_directory
 from routes import auth, ppdk, admin_ppdk, pelatih, setup, assessment, analytic, load
 from extensions import db, f_bcrypt, cors, jwt
 from CONSTANT import UPLOAD_FOLDER
+from os import path
 
 app = Flask(__name__)
 
@@ -32,6 +33,11 @@ app.register_blueprint(load.bp)
 @app.route("/images/<string:name>")
 def serve(name):
     return send_from_directory(app.config["UPLOAD_FOLDER"], name)
+
+
+@app.route("/docs/<string:name>")
+def serve_docs(name):
+    return send_from_directory(path.join(app.config["UPLOAD_FOLDER"], "docs"), name)
 
 
 if __name__ == "__main__":
