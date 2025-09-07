@@ -35,7 +35,6 @@ signup.add_argument("jawatan", type=str, required=True)
 signup.add_argument("ppdk_id", type=str, required=True)
 
 password = reqparse.RequestParser()
-password.add_argument("email", type=str, required=True)
 password.add_argument("new_pass", type=str, required=True)
 
 
@@ -63,10 +62,12 @@ class Login(Resource):
 
 
 class Signup(Resource):
+    @jwt_required()
     @marshal_with(adminFields)
     def post(self):
         args = signup.parse_args()
-        ppdk = PPDK.query.filter_by(id=args["ppdk_id"]).first_or_404("PPDK not found")
+        ppdk = PPDK.query.filter_by(
+            id=args["ppdk_id"]).first_or_404("PPDK not found")
         new_admin = Admin(
             email=args["email"],
             nama=args["nama"],
@@ -83,9 +84,12 @@ class Signup(Resource):
 
 
 class Password(Resource):
+    @jwt_required()
     def put(self):
         args = password.parse_args()
-        admin = Admin.query.filter_by(email=args["email"]).first_or_404(
+        user = get_jwt_identity()
+
+        admin = Admin.query.filter_by(email=user['email']).first_or_404(
             "Admin not found"
         )
         admin.password = f_bcrypt.generate_password_hash(args["new_pass"])
